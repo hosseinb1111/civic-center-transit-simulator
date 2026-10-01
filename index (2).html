@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Civic Center / UN Plaza — BART & Muni Operations Simulator</title>
+<meta name="description" content="Interactive cutaway simulator of Civic Center / UN Plaza station: BART and Muni Metro trains, platform displays, door cycles and passenger flow. Illustrative, synthetic data.">
+<meta name="theme-color" content="#070a0e">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Civic Center / UN Plaza — BART & Muni Operations Simulator">
+<meta property="og:description" content="Four-level station cutaway with live trains, passengers and a rolling station log.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%87%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#070a0e; --panel:#0d1219; --panel2:#0a0f15; --line:#202a35;
+  --text:#eef3f8; --muted:#8b98a7; --cyan:#6ee7ff; --green:#46d98a;
+  --yellow:#f7cf42; --orange:#ee8d35; --red:#ff6170; --blue:#5da9ff; --muni:#2e79c7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 15% 0%,rgba(110,231,255,.07),transparent 30%),radial-gradient(circle at 90% 15%,rgba(90,168,255,.05),transparent 28%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.shell{max-width:1580px;margin:auto;padding:20px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:14px}
+.eyebrow{font-size:10.5px;letter-spacing:.19em;text-transform:uppercase;color:var(--cyan);font-weight:800}
+h1{font-size:28px;letter-spacing:-.045em;margin:4px 0 0;line-height:1.1}.sub{font-size:12.5px;color:var(--muted);margin-top:5px}
+.clock{text-align:right}.time{font:800 28px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:-.04em}.period{margin-top:5px;font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan);font-weight:800}.sim{font-size:11px;color:var(--muted);margin-top:4px}
+.layout{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(325px,.72fr);gap:14px}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.008));border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.22)}
+.panel-head{padding:11px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.panel-title{font-size:11.5px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}.panel-note{font-size:10.5px;color:var(--muted);margin-top:2px}
+.controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.btn,.seg,.jump{font-family:inherit;border:1px solid var(--line);background:#0b1017;color:var(--text);border-radius:8px;padding:6px 9px;font-size:11px;cursor:pointer}.btn:hover,.seg:hover,.jump:hover{background:#121923}.btn.active,.seg.on{background:rgba(110,231,255,.12);border-color:rgba(110,231,255,.36);color:var(--cyan)}.jump{padding:6px 8px;font-family:ui-monospace,monospace;font-size:10px}
+.station-wrap{position:relative;width:100%;aspect-ratio:1440/920;background:#05070a;overflow:hidden}#stage{display:block;width:100%;height:100%}
+.legend{display:flex;gap:7px;flex-wrap:wrap;padding:11px 13px;border-top:1px solid #141a22}.tag{display:flex;align-items:center;gap:7px;padding:5px 8px;border:1px solid var(--line);background:#0b1017;border-radius:999px;font-size:10.5px;color:#c6d0db}.dot{width:7px;height:7px;border-radius:50%;box-shadow:0 0 8px currentColor}
+.stack{display:grid;gap:14px;align-content:start}.stats{padding:11px;display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.stat{background:#0b1017;border:1px solid var(--line);border-radius:11px;padding:10px}.k{font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}.v{font:800 21px/1.15 ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:3px}.s{font-size:9.5px;color:var(--muted);margin-top:1px}
+.schedule{padding:5px 6px 9px;max-height:375px;overflow:auto}.row{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:9px;align-items:center;padding:8px 7px;border-bottom:1px solid #182029;border-radius:8px}.row:last-child{border-bottom:0}.row.now{background:rgba(110,231,255,.055);border-bottom-color:transparent}.rtime{font:11px ui-monospace,monospace;color:#c1cad4}.dest{font-size:11.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:9.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.badge{font-size:8.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-radius:999px;white-space:nowrap}
+.feed{padding:9px;display:grid;gap:6px;max-height:275px;overflow:auto}.event{padding:8px 9px;background:#0b1017;border:1px solid var(--line);border-radius:9px;font-size:10.5px;line-height:1.4}.event b{display:block;color:#f7fafc;font-weight:650}.event span{display:block;color:var(--muted);font-size:9.5px;margin-top:2px}.ts{color:var(--cyan);font-family:ui-monospace,monospace;margin-right:5px}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px 11px;border-top:1px solid var(--line)}.status-card{border:1px solid var(--line);border-radius:10px;background:#0b1017;padding:8px}.status-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.status-value{font-size:10px;font-weight:750;margin-top:4px}.ok{color:var(--green)}.warn{color:var(--yellow)}
+.foot{margin-top:12px;color:#657284;font-size:10px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.foot b{color:#8694a5}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.clock{text-align:left}.station-wrap{aspect-ratio:1180/900}}
+
+/* keyboard focus */
+.btn:focus-visible,.seg:focus-visible,.jump:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* footer credit */
+.footer-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin-top:20px;padding-top:18px;border-top:1px solid var(--line,#ddd5c9);color:var(--muted,#a29a90);font-size:.7rem;line-height:1.7;text-align:center}
+.footer-bottom .heart,.footer-bottom .coffee{display:inline-block;font-size:1em;line-height:1;transform-origin:center}
+.footer-bottom .heart{animation:heart-beat 1.8s ease-in-out infinite}
+@keyframes heart-beat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}45%{transform:scale(1.15)}}
+.footer-bottom .coffee{animation:coffee-bob 2.6s ease-in-out infinite}
+@keyframes coffee-bob{0%,100%{transform:translateY(0) rotate(0deg)}40%{transform:translateY(-2px) rotate(-6deg)}70%{transform:translateY(0) rotate(3deg)}}
+.footer-bottom .credit-name{color:var(--text,#242321);font-weight:700}
+.github-link{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;margin-left:2px;color:var(--text,#242321);background:var(--fact-bg,var(--panel,#f7f2e9));border:1px solid var(--line,#ddd5c9);border-radius:50%;text-decoration:none;transition:transform .22s ease,background .22s ease,color .22s ease,border-color .22s ease}
+.github-link:hover{transform:scale(1.12) translateY(-1px);background:var(--accent,var(--cyan,#dc8427));color:var(--bg,#fff);border-color:var(--accent,var(--cyan,#dc8427))}
+.github-link:active{transform:scale(.94)}
+.github-link:focus-visible{outline:2px solid var(--accent,var(--cyan,#dc8427));outline-offset:3px}
+.github-link svg{display:block;width:14px;height:14px;fill:currentColor}
+@media(max-width:400px){.footer-bottom{font-size:.65rem}}
+@media(prefers-reduced-motion:reduce){.footer-bottom .heart,.footer-bottom .coffee{animation:none !important}.github-link{transition:none !important}}
+</style>
+</head>
+<body>
+<noscript><div class="shell">This simulator needs JavaScript enabled.</div></noscript>
+<div class="shell">
+<header>
+  <div>
+    <div class="eyebrow">BART &amp; Muni Metro · station operations simulator</div>
+    <h1>Civic Center / UN Plaza</h1>
+    <div class="sub">Four-level cutaway · passenger circulation · platform displays · door cycles · service headways · illustrative operations</div>
+  </div>
+  <div class="clock">
+    <div id="clock" class="time">08:00:00</div>
+    <div id="period" class="period">Morning Rush</div>
+    <div id="clockState" class="sim">Running · 4×</div>
+  </div>
+</header>
+
+<div class="layout">
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title">Station cutaway</div>
+      <div class="panel-note">Street → Concourse → Muni Metro → BART · island platforms with central tracks</div>
+    </div>
+    <div class="controls">
+      <button id="pauseBtn" class="btn">Pause</button>
+      <button class="seg" data-speed="1">1×</button>
+      <button class="seg" data-speed="2">2×</button>
+      <button class="seg on" data-speed="4">4×</button>
+      <button class="seg" data-speed="8">8×</button>
+      <span style="width:1px;height:18px;background:var(--line)" aria-hidden="true"></span>
+      <button class="jump" data-jump="23400">06:30</button>
+      <button class="jump" data-jump="28800">08:00</button>
+      <button class="jump" data-jump="43200">12:00</button>
+      <button class="jump" data-jump="63000">17:30</button>
+      <button class="jump" data-jump="79200">22:00</button>
+    </div>
+  </div>
+  <div class="station-wrap"><canvas id="stage" role="img" aria-label="Animated cutaway of Civic Center / UN Plaza station showing BART and Muni trains and passengers"></canvas></div>
+  <div class="legend">
+    <div class="tag"><span class="dot" style="background:#f7cf42;color:#f7cf42"></span>Yellow · Antioch ↔ SFIA / Millbrae</div>
+    <div class="tag"><span class="dot" style="background:#ff6170;color:#ff6170"></span>Red · Richmond ↔ Millbrae / SFIA</div>
+    <div class="tag"><span class="dot" style="background:#ee8d35;color:#ee8d35"></span>Orange · Berryessa ↔ Daly City</div>
+    <div class="tag"><span class="dot" style="background:#5da9ff;color:#5da9ff"></span>Blue · Dublin / Pleasanton ↔ Daly City</div>
+    <div class="tag"><span class="dot" style="background:#2e79c7;color:#2e79c7"></span>Muni · J / K / L / M / N</div>
+  </div>
+</section>
+
+<aside class="stack">
+  <section class="panel">
+    <div class="panel-head"><div><div class="panel-title">Operations</div><div class="panel-note">Live simulator telemetry</div></div></div>
+    <div class="stats">
+      <div class="stat"><div class="k">Dwelling</div><div id="stTrains" class="v">0</div><div class="s">trains at platform</div></div>
+      <div class="stat"><div class="k">Waiting</div><div id="stWaiting" class="v">0</div><div class="s">passengers</div></div>
+      <div class="stat"><div class="k">Boarded</div><div id="stBoarded" class="v">0</div><div class="s">since sim start</div></div>
+      <div class="stat"><div class="k">Departed</div><div id="stDeparted" class="v">0</div><div class="s">trains dispatched</div></div>
+    </div>
+    <div class="status">
+      <div class="status-card"><div class="status-label">Traction power</div><div class="status-value ok">Normal · 100%</div></div>
+      <div class="status-card"><div class="status-label">Escalators</div><div class="status-value ok">8 / 8 available</div></div>
+      <div class="status-card"><div class="status-label">Elevator</div><div class="status-value ok">Platform lift active</div></div>
+      <div class="status-card"><div class="status-label">Service</div><div id="serviceStatus" class="status-value ok">On schedule</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="panel-title">Next trains</div><div id="boardCount" class="panel-note">—</div></div></div>
+    <div id="schedule" class="schedule"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><div class="panel-title">Station log</div><div class="panel-note">Dispatch + passenger activity</div></div></div>
+    <div id="feed" class="feed"></div>
+  </section>
+</aside>
+</div>
+
+<div class="foot">
+  <span><b>Simulation basis:</b> station geometry and current route set are modeled from public BART/SFMTA station information; departures, passenger counts, and dwell times are synthetic.</span>
+  <span>Space = pause · 1/2/4/8 = speed · time buttons jump the simulation.</span>
+</div>
+
+<div class="footer-bottom">
+  <span>Created with</span>
+  <span class="heart" role="img" aria-label="love">❤️</span>
+  <span>&amp;</span>
+  <span class="coffee" role="img" aria-label="coffee">☕</span>
+  <span>by</span>
+  <span class="credit-name">Hossein Seyed Bagheri</span>
+  <a
+    class="github-link"
+    href="https://github.com/hosseinb1111/civic-center-transit-simulator"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="View project on GitHub"
+    title="View on GitHub"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"
+         aria-hidden="true" focusable="false">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+  </a>
+</div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+
+const W=1440,H=920;
+const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
+let vw=0,vh=0,s=1,ox=0,oy=0;
+function resize(){const r=canvas.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(d,0,0,d,0,0);vw=r.width;vh=r.height;s=Math.min(vw/W,vh/H);ox=(vw-W*s)/2;oy=(vh-H*s)/2}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);window.addEventListener('resize',resize);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rnd=(a,b)=>a+Math.random()*(b-a);
+function rr(c,x,y,w,h,r){r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function pad2(n){return n<10?'0'+n:''+n}
+function fmt(t){t=((t%86400)+86400)%86400;return pad2(Math.floor(t/3600))+':'+pad2(Math.floor(t/60)%60)+':'+pad2(Math.floor(t)%60)}
+function esc(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+// Public-facing current route set, with synthetic service frequency.
+const BART={
+ yellow:{label:'Yellow',color:'#f7cf42',fg:'#151a20',cars:[8,9,10],headRush:150,headOff:300,a:'SFIA / Millbrae',b:'Antioch'},
+ red:{label:'Red',color:'#ff6170',fg:'#fff',cars:[8,9,10],headRush:300,headOff:600,a:'Richmond',b:'Millbrae / SFIA'},
+ orange:{label:'Orange',color:'#ee8d35',fg:'#fff',cars:[8,9,10],headRush:300,headOff:600,a:'Daly City',b:'Berryessa / North San José'},
+ blue:{label:'Blue',color:'#5da9ff',fg:'#fff',cars:[8,9,10],headRush:300,headOff:600,a:'Daly City',b:'Dublin / Pleasanton'}
+};
+const MUNI={
+ J:{label:'J Church',short:'J',color:'#c9935d',fg:'#fff',cars:[1,2],headRush:360,headOff:600,a:'Embarcadero',b:'Balboa Park'},
+ K:{label:'K Ingleside',short:'K',color:'#4d91ca',fg:'#fff',cars:[1,2],headRush:480,headOff:720,a:'Embarcadero',b:'Balboa Park'},
+ L:{label:'L Taraval',short:'L',color:'#8360a9',fg:'#fff',cars:[1,2],headRush:480,headOff:720,a:'Embarcadero',b:'SF Zoo'},
+ M:{label:'M Ocean View',short:'M',color:'#43a16e',fg:'#fff',cars:[1,2],headRush:480,headOff:720,a:'Embarcadero',b:'Balboa Park'},
+ N:{label:'N Judah',short:'N',color:'#2e79c7',fg:'#fff',cars:[1,2],headRush:360,headOff:540,a:'Embarcadero',b:'Ocean Beach'}
+};
+const SERVICES=[];
+function add(sys,id,dir,offset){SERVICES.push({sys,id,dir,offset})}
+// Offsets are deliberately staggered to create the dense downtown rhythm seen on the real corridor.
+add('bart','yellow','A',0);add('bart','yellow','B',30);
+add('bart','orange','A',60);add('bart','orange','B',90);
+add('bart','blue','A',120);add('bart','blue','B',150);
+add('bart','red','A',180);add('bart','red','B',210);
+add('muni','N','A',15);add('muni','N','B',195);
+add('muni','J','A',75);add('muni','J','B',255);
+add('muni','K','A',135);add('muni','K','B',315);
+add('muni','L','A',225);add('muni','L','B',45);
+add('muni','M','A',285);add('muni','M','B',105);
+
+const G={street:[0,92],conc:[105,250],muni:[290,490],bart:[535,745]};
+const PLATFORM={muni:{trackA:344,trackB:450,platformTop:366,platformBottom:428,doorY:382,ceil:300},bart:{trackA:592,trackB:688,platformTop:614,platformBottom:670,doorY:632,ceil:545}};
+const shafts=[120,1318], fareX=[550,594,638,682,726,770,814,858];
+const COLS=[175,360,545,730,915,1100,1265];
+const PAXCOL=['#e5b38b','#c89978','#a6b98e','#8fb3cc','#cda8ae','#d9bf8b','#80a99f','#c9b0d2','#a9bfd3','#c7a17e','#aeb8c4'];
+let sim=8*3600,speed=4,paused=false,trains=[],pax=[],nextKey=1,stats={boarded:0,alighted:0,departed:0},events=[],nextArrival=[];
+const MAX_TRAINS=25,MAX_PAX=285;
+function rush(t){const h=(t%86400)/3600;return(h>=6.5&&h<9.5)||(h>=16&&h<19)}
+function data(svc){return svc.sys==='bart'?BART[svc.id]:MUNI[svc.id]}
+function headway(svc,t){const d=data(svc);return rush(t)?d.headRush:d.headOff}
+function firstAt(svc,now){let t=svc.offset;while(t<now)t+=headway(svc,t);return t}
+function resetNext(){nextArrival=SERVICES.map(svc=>firstAt(svc,sim))}
+
+class Train{
+ constructor(svc,at){this.svc=svc;this.sys=svc.sys;this.id=svc.id;this.dir=svc.dir;this.line=data(svc);this.key='T'+nextKey++;this.arriveAt=at;this.dirSign=svc.dir==='A'?1:-1;this.level=svc.sys==='bart'?PLATFORM.bart:PLATFORM.muni;this.cy=svc.dir==='A'?this.level.trackA:this.level.trackB;this.cars=this.line.cars[(Math.random()*this.line.cars.length)|0];this.carLen=svc.sys==='bart'?76:70;this.total=this.cars*this.carLen;this.h=svc.sys==='bart'?45:34;this.x=this.dirSign>0?-this.total-150:W+this.total+150;this.startX=this.x;this.endX=this.dirSign>0?W+this.total+150:-this.total-150;this.state='approach';this.t=0;this.approach=25+Math.random()*5;this.dwell=(svc.sys==='bart'?22:17)+Math.random()*6;this.delay=(Math.random()<0.08)?rnd(5,35):0;this.doors=false;this.closed=false;this.board=0;this.alight=0;this.dead=false}
+ get dest(){return this.dir==='A'?this.line.a:this.line.b}
+ update(dt){this.t+=dt;if(this.state==='approach'){const p=Math.min(1,this.t/(this.approach+this.delay));const e=1-Math.pow(1-p,3);this.x=this.startX+(W/2-this.startX)*e;if(p>=1){this.x=W/2;this.state='dwell';this.t=0;logEvent(this.line.label+' '+(this.sys==='bart'?'train':'LRV')+' at platform',this.dest+(this.delay>0?' · +'+Math.round(this.delay)+'s delay':'')+' · doors preparing')}}else if(this.state==='dwell'){if(!this.doors&&this.t>1.3)this.openDoors();if(this.doors&&!this.closed&&this.t>this.dwell-3)this.closed=true;if(this.t>=this.dwell){this.state='depart';this.t=0;this.doors=false;logEvent(this.line.label+' departing',this.board+' boarded · '+this.alight+' alighted · doors closed')}}else{const p=Math.min(1,this.t/16),e=p*p*p;this.x=W/2+(this.endX-W/2)*e;if(p>=1){this.dead=true;stats.departed++;}}}
+ openDoors(){this.doors=true;const al=this.sys==='bart'?Math.round(rnd(5,17)):Math.round(rnd(1,7));this.alight=al;for(let i=0;i<al;i++)spawnAlight(this);const waitY=this.dir==='A'?this.level.doorY-26:this.level.doorY+26;for(const p of pax){if(p.state!=='waiting'||p.sys!==this.sys||p.dir!==this.dir||p.lineId!==this.id)continue;p.targetX=clamp(p.x,this.x-this.total/2+26,this.x+this.total/2-26);p.path=[{x:p.x,y:p.y},{x:p.targetX,y:waitY},{x:p.targetX,y:this.level.doorY}];p.i=0;p.state='boarding';p.onEnd=()=>{p.dead=true;this.board++;stats.boarded++}}logEvent(this.line.label+' doors open',this.board+' boarding groups moving · '+al+' passengers alighting')}
+}
+class Person{
+ constructor(o={}){this.x=o.x||rnd(260,1180);this.y=o.y||G.street[0]+20;this.sys=o.sys||null;this.dir=o.dir||null;this.lineId=o.lineId||null;this.state=o.state||'walk';this.path=[];this.i=0;this.speed=rnd(28,48);this.r=rnd(3.6,5.2);this.color=PAXCOL[(Math.random()*PAXCOL.length)|0];this.bag=Math.random()<.32;this.bike=Math.random()<.045;this.onEnd=null;this.dead=false;this.delay=Math.random()*1.3;this.phase=Math.random()*6.28}
+ setPath(path,onEnd){this.path=path||[];this.i=0;this.onEnd=onEnd||null;this.state='walk'}
+ update(dt){if(this.dead)return;if(this.delay>0){this.delay-=dt;return}if(this.state==='waiting')return;let q=this.path[this.i];if(!q){this.state='done';if(this.onEnd){let f=this.onEnd;this.onEnd=null;f(this)}return}let dx=q.x-this.x,dy=q.y-this.y,d=Math.hypot(dx,dy),step=this.speed*dt;if(d<=step||d<.6){this.x=q.x;this.y=q.y;this.i++;if(this.i>=this.path.length){this.state='done';if(this.onEnd){let f=this.onEnd;this.onEnd=null;f(this)}}}else{this.x+=dx/d*step;this.y+=dy/d*step}}
+}
+function chooseService(){let weights=[],total=0;for(const svc of SERVICES){const w=1/headway(svc,sim);weights.push(w);total+=w}let r=Math.random()*total;for(let i=0;i<SERVICES.length;i++){r-=weights[i];if(r<=0)return SERVICES[i]}return SERVICES[0]}
+function spawnEntry(){if(pax.length>=MAX_PAX)return;const svc=chooseService(),lvl=svc.sys==='bart'?PLATFORM.bart:PLATFORM.muni,waitY=svc.dir==='A'?lvl.doorY-25:lvl.doorY+25;const p=new Person({sys:svc.sys,dir:svc.dir,lineId:svc.id,x:rnd(270,1170),y:rnd(18,76)});const shaft=shafts[(Math.random()*shafts.length)|0],dest=rnd(190,1250);p.setPath([{x:p.x,y:91},{x:shaft,y:91},{x:shaft,y:G.conc[1]-20},{x:shaft,y:waitY},{x:dest,y:waitY}],()=>p.state='waiting');pax.push(p)}
+function spawnAlight(tr){if(pax.length>=MAX_PAX)return;const lvl=tr.level,y=tr.dir==='A'?lvl.doorY-25:lvl.doorY+25,p=new Person({x:tr.x+rnd(-tr.total*.35,tr.total*.35),y});const shaft=Math.abs(p.x-shafts[0])<Math.abs(p.x-shafts[1])?shafts[0]:shafts[1];const exit=rnd(250,1180);p.setPath([{x:shaft,y},{x:shaft,y:G.conc[1]-20},{x:shaft,y:91},{x:exit,y:91},{x:exit,y:20}],()=>{p.dead=true;stats.alighted++});pax.push(p)}
+function spawnTrain(svc,at){if(trains.length>=MAX_TRAINS)return;trains.push(new Train(svc,at));const d=data(svc);logEvent(d.label+' service approaching',(svc.dir==='A'?'Outbound':'Inbound')+' · '+(svc.dir==='A'?d.a:d.b))}
+
+function logEvent(a,b){events.unshift({t:fmt(sim),a,b});if(events.length>14)events.length=14;renderLog()}
+function renderLog(){document.getElementById('feed').innerHTML=events.map(e=>`<div class="event"><b><span class="ts">${e.t}</span>${esc(e.a)}</b><span>${esc(e.b||'')}</span></div>`).join('')}
+
+let lastRush=rush(sim),paxAcc=0;
+function update(dt){const r=rush(sim);if(r!==lastRush){logEvent(r?'Morning/evening peak service begins':'Peak service eases','Synthetic headways updated for the new service period');lastRush=r}
+for(let i=0;i<SERVICES.length;i++){let safety=0;while(nextArrival[i]-sim<30&&safety++<8){spawnTrain(SERVICES[i],nextArrival[i]);nextArrival[i]+=headway(SERVICES[i],nextArrival[i])}}
+for(let i=trains.length-1;i>=0;i--){const tr=trains[i],prev=tr.state;tr.update(dt);if(prev==='approach'&&tr.state==='dwell')logEvent(tr.line.label+' platform stop',`${tr.dest} · ${tr.cars}-car ${tr.sys==='bart'?'BART train':'Muni LRV'} · boarding open`);if(tr.dead)trains.splice(i,1)}
+paxAcc += dt*(rush(sim)?0.19:0.10);let guard=0;while(paxAcc>=1&&guard++<5){paxAcc--;spawnEntry()}
+for(let i=pax.length-1;i>=0;i--){pax[i].update(dt);if(pax[i].dead)pax.splice(i,1)}
+}
+
+/* ----------------- drawing ----------------- */
+function fit(){ctx.save();ctx.translate(ox,oy);ctx.scale(s,s)}
+function unfit(){ctx.restore()}
+function wall(y0,y1){ctx.fillStyle='#10151c';ctx.fillRect(0,y0,W,y1-y0);ctx.strokeStyle='rgba(255,255,255,.022)';ctx.lineWidth=1;for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke()}}
+function lights(y){for(let x=60;x<W;x+=180){const g=ctx.createRadialGradient(x,y,0,x,y,115);g.addColorStop(0,'rgba(255,240,210,.15)');g.addColorStop(1,'rgba(255,240,210,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,115,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,245,220,.62)';rr(ctx,x-26,y-3,52,5,2);ctx.fill()}}
+function track(y0,y1){ctx.fillStyle='#090c11';ctx.fillRect(0,y0,W,y1-y0);ctx.strokeStyle='#38414d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,y1-9);ctx.lineTo(W,y1-9);ctx.stroke();for(let x=0;x<W;x+=22){ctx.strokeStyle='rgba(255,255,255,.045)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y1-17);ctx.lineTo(x,y1-2);ctx.stroke()}}
+function island(top,bottom){const g=ctx.createLinearGradient(0,top,0,bottom);g.addColorStop(0,'#303741');g.addColorStop(.5,'#292f38');g.addColorStop(1,'#21262f');ctx.fillStyle=g;ctx.fillRect(0,top,W,bottom-top);ctx.fillStyle='#d1af34';ctx.fillRect(0,top, W,5);ctx.fillRect(0,bottom-5,W,5);ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(0,top+6,W,1)}
+function levelLabel(text,y){ctx.save();ctx.fillStyle='rgba(235,242,248,.22)';ctx.font='800 18px Inter,Arial';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(text,24,y);ctx.restore()}
+function beamSet(y,thick=16){ctx.fillStyle='#252c35';for(const x of COLS)ctx.fillRect(x,y,24,thick);}
+function drawStreet(){wall(G.street[0],G.street[1]);ctx.fillStyle='#191e27';ctx.fillRect(0,0,W,16);ctx.fillStyle='#c8d0db';ctx.font='800 18px Inter,Arial';ctx.fillText('MARKET STREET',25,36);ctx.fillStyle='#7d8b9b';ctx.font='600 10px ui-monospace,monospace';ctx.fillText('STREET LEVEL · CIVIC CENTER / UN PLAZA',25,54);lights(72);
+const entries=[['A1','Civic Center / Grove'],['A2','Market & Hyde'],['A3','UN Plaza'],['A4','Market & 7th'],['B1','Market & 8th'],['B2','Market & 8th'],['B3','Market · 1100 block'],['B4','Market & 7th']];
+entries.forEach((e,i)=>{const x=70+i*164;ctx.fillStyle='#262d37';rr(ctx,x,70,138,32,5);ctx.fill();ctx.fillStyle='#6ee7ff';ctx.font='900 9px ui-monospace,monospace';ctx.fillText(e[0],x+8,84);ctx.fillStyle='#dae3ec';ctx.font='600 9px Inter,Arial';ctx.fillText(e[1],x+28,84);ctx.fillStyle='#11161d';ctx.fillRect(x+11,92,116,3)})}
+function drawConc(){wall(G.conc[0],G.conc[1]);lights(116);ctx.fillStyle='#d4dbe3';ctx.font='800 11px Inter,Arial';ctx.fillText('FARE CONCOURSE',24,130);ctx.fillStyle='#8794a5';ctx.font='600 9px ui-monospace,monospace';ctx.fillText('BART PAID AREA',425,136);ctx.fillText('MUNI PAID AREA',928,136);
+for(let i=0;i<fareX.length;i++){ctx.fillStyle='#242c36';rr(ctx,fareX[i],150,34,62,4);ctx.fill();ctx.fillStyle=i%2?'#32d56e':'#54a7ff';ctx.beginPath();ctx.arc(fareX[i]+17,168,2.3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#0c1117';ctx.fillRect(fareX[i]+7,178,20,17)}
+const boxes=[[300,'BART'],[1030,'MUNI']];for(const [x,t] of boxes){ctx.fillStyle='#1a2029';rr(ctx,x,147,180,66,6);ctx.fill();ctx.fillStyle=t==='BART'?'#5da9ff':'#2e79c7';ctx.font='900 12px Inter,Arial';ctx.fillText(t,x+14,170);ctx.fillStyle='#8e9aa8';ctx.font='9px Inter,Arial';ctx.fillText('Clipper / information',x+14,189)}
+ctx.strokeStyle='#4a5563';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(90,235);ctx.lineTo(90,160);ctx.lineTo(180,160);ctx.stroke();ctx.beginPath();ctx.moveTo(1350,235);ctx.lineTo(1350,160);ctx.lineTo(1260,160);ctx.stroke();}
+function drawEscalator(x,y0,y1,w){ctx.strokeStyle='#75808e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x+w,y1);ctx.stroke();for(let i=0;i<13;i++){const p=i/12,xx=x+p*w,yy=y0+p*(y1-y0);ctx.strokeStyle='rgba(255,255,255,.16)';ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+6,yy+4);ctx.stroke()}ctx.fillStyle='#1f2630';ctx.fillRect(x-6,y0-3,w+12,6);ctx.fillRect(x-6,y1-3,w+12,6)}
+function drawShafts(){for(const x of shafts){ctx.fillStyle='rgba(175,215,255,.06)';ctx.fillRect(x-24,95,48,G.bart[1]-95);ctx.strokeStyle='rgba(190,220,255,.20)';ctx.strokeRect(x-23.5,95.5,47,G.bart[1]-96);ctx.fillStyle='rgba(255,240,200,.10)';ctx.fillRect(x-24,365,48,62);ctx.fillRect(x-24,615,48,55);ctx.fillStyle='#92a2b3';ctx.font='8px ui-monospace,monospace';ctx.textAlign='center';ctx.fillText('ELEVATOR',x,350);ctx.textAlign='left'}}
+function drawMuni(){wall(278,300);track(326,358);track(432,464);island(366,428);lights(298);levelLabel('MUNI METRO',386);ctx.fillStyle='#8592a1';ctx.font='600 9px ui-monospace,monospace';ctx.fillText('PLATFORM  ·  J  K  L  M  N',W-210,386);beamSet(277,16);drawEscalator(205,252,368,48);drawEscalator(1185,252,368,48)}
+function drawBart(){wall(523,545);track(574,606);track(670,702);island(614,670);lights(543);levelLabel('BART',632);ctx.fillStyle='#8592a1';ctx.font='600 9px ui-monospace,monospace';ctx.fillText('PLATFORM 2 · NORTHBOUND',W-270,626);ctx.fillText('PLATFORM 1 · SOUTHBOUND',W-270,650);beamSet(522,16);drawEscalator(245,487,616,66);drawEscalator(1145,487,616,66)}
+function drawColumns(){for(const x of COLS){ctx.fillStyle='#1f2630';ctx.fillRect(x,292,24,438);ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(x+3,292,4,438)}}
+function drawBoards(){// Muni and BART LED boards
+const boards=[{x:72,y:330,w:240,sys:'MUNI',txt:['N JUDAH  Embarcadero','J CHURCH  Embarcadero','K INGLESIDE  Balboa Park']},{x:970,y:585,w:360,sys:'BART',txt:['SFIA / MILLBRAE   2 min   8-CAR','DALY CITY          5 min   10-CAR','ANTIOCH            8 min   10-CAR']}];for(const b of boards){ctx.fillStyle='#11151b';rr(ctx,b.x,b.y,b.w,52,4);ctx.fill();ctx.strokeStyle='#2c3643';ctx.stroke();ctx.fillStyle='#ff515d';ctx.font='800 8px ui-monospace,monospace';ctx.fillText(b.sys,b.x+9,b.y+12);ctx.fillStyle='#f9c865';ctx.font='600 8px ui-monospace,monospace';b.txt.forEach((t,i)=>ctx.fillText(t,b.x+9,b.y+25+i*10))}}
+function drawStationSigns(){const signs=[['CIVIC CENTER',W/2-90,233],['UN PLAZA',W/2+30,233],['CIVIC CENTER',W/2-70,500]];for(const z of signs){ctx.fillStyle='#0b1118';rr(ctx,z[1],z[2],120,22,4);ctx.fill();ctx.strokeStyle='#42505f';ctx.stroke();ctx.fillStyle='#eaf0f6';ctx.font='800 8px Inter,Arial';ctx.textAlign='center';ctx.fillText(z[0],z[1]+60,z[2]+14);ctx.textAlign='left'}}
+function drawFloorDetails(){// tactile markers and column bases
+for(const y of [366,428,614,670]){ctx.fillStyle='rgba(249,210,69,.24)';for(let x=22;x<W;x+=22){ctx.beginPath();ctx.arc(x,y,1.4,0,Math.PI*2);ctx.fill()}}
+for(const x of COLS){ctx.fillStyle='#11161d';rr(ctx,x-5,352,34,12,2);ctx.fill();rr(ctx,x-5,600,34,12,2);ctx.fill()}}
+
+function drawTrain(t){const total=t.total,car=t.carLen,h=t.h,x0=t.x-total/2,y=t.cy-h/2;ctx.fillStyle='rgba(0,0,0,.42)';rr(ctx,x0+8,y+h-1,total-16,8,4);ctx.fill();for(let i=0;i<t.cars;i++)drawCar(x0+i*car+2,y,car-4,h,t,i===0||i===t.cars-1);if(t.doors){ctx.fillStyle='rgba(255,240,192,.10)';ctx.fillRect(x0,y-12,total,h+24)}if(t.state!=='dwell'){const fx=t.x+t.dirSign*total/2,g=ctx.createRadialGradient(fx,t.cy,0,fx,t.cy,120);g.addColorStop(0,'rgba(255,248,220,.4)');g.addColorStop(1,'rgba(255,248,220,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(fx,t.cy,120,0,Math.PI*2);ctx.fill()}}
+function drawCar(x,y,w,h,t,lead){const c=t.line;ctx.fillStyle=c.color;rr(ctx,x,y,w,h,lead?8:4);ctx.fill();ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(x,y,w,2);ctx.fillStyle='#202a35';rr(ctx,x+w*.08,y+h*.18,w*.84,h*.32,3);ctx.fill();for(let k=1;k<4;k++){ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x+w*.08+k*(w*.84/4),y+h*.19,1,h*.29)}for(let k=1;k<3;k++){ctx.fillStyle='rgba(10,14,20,.36)';ctx.fillRect(x+w*k/3,y+h*.12,2,h*.72)}ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x+w*.06,y+h*.68,w*.88,2);if(lead){const p=t.dirSign>0?x+w-5:x+5;ctx.fillStyle='#fff9df';ctx.beginPath();ctx.arc(p,y+h*.78,2.3,0,Math.PI*2);ctx.fill();ctx.fillStyle='#0b1118';ctx.font='700 7px ui-monospace,monospace';ctx.textAlign=t.dirSign>0?'right':'left';ctx.fillText(t.dest,t.dirSign>0?x+w-12:x+12,y+h*.58);ctx.textAlign='left'}}
+function drawPerson(p){const bob=p.state==='waiting'?Math.sin((performance.now()/500)+p.phase)*.4:0;ctx.fillStyle='rgba(0,0,0,.26)';ctx.beginPath();ctx.ellipse(p.x,p.y+p.r*1.05,p.r*1.1,p.r*.35,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y+bob,p.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,.30)';ctx.beginPath();ctx.arc(p.x-p.r*.28,p.y-p.r*.3+bob,p.r*.35,0,Math.PI*2);ctx.fill();if(p.bag){ctx.fillStyle='#465260';rr(ctx,p.x-p.r*.9,p.y-p.r*.1,Math.max(2,p.r*.6),p.r*1.15,1.5);ctx.fill()}if(p.bike){ctx.strokeStyle='#bdc7d1';ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x-5,p.y+7,4,0,Math.PI*2);ctx.arc(p.x+5,p.y+7,4,0,Math.PI*2);ctx.moveTo(p.x-5,p.y+7);ctx.lineTo(p.x,p.y);ctx.lineTo(p.x+5,p.y+7);ctx.stroke()}}
+function drawArrow(x,y,dir,color){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-dir*12,y);ctx.lineTo(x+dir*12,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x+dir*12,y);ctx.lineTo(x+dir*5,y-5);ctx.moveTo(x+dir*12,y);ctx.lineTo(x+dir*5,y+5);ctx.stroke()}
+function render(){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.restore();ctx.save();ctx.translate(ox,oy);ctx.scale(s,s);ctx.fillStyle='#05070a';ctx.fillRect(0,0,W,H);drawStreet();drawConc();drawMuni();drawBart();drawColumns();drawShafts();drawStationSigns();drawBoards();drawFloorDetails();for(const t of trains)drawTrain(t);for(const p of pax)drawPerson(p);drawArrow(W-100,384,1,'#45d483');drawArrow(W-100,632,1,'#f7cf42');const vg=ctx.createRadialGradient(W/2,H/2,260,W/2,H/2,850);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.58)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);unfit()}
+
+const clock=document.getElementById('clock'),period=document.getElementById('period'),clockState=document.getElementById('clockState'),schedule=document.getElementById('schedule'),feed=document.getElementById('feed'),serviceStatus=document.getElementById('serviceStatus');
+function periodName(){const h=(sim%86400)/3600;if(h<5)return'Overnight';if(h<6.5)return'Early Morning';if(h<9.5)return'Morning Rush';if(h<15)return'Midday Service';if(h<19)return'Evening Rush';if(h<22)return'Evening Service';return'Late Night'}
+function updateHud(){clock.textContent=fmt(sim);period.textContent=periodName();clockState.textContent=(paused?'Paused':'Running')+' · '+speed+'×';document.getElementById('stTrains').textContent=trains.filter(t=>t.state==='dwell').length;document.getElementById('stWaiting').textContent=pax.filter(p=>p.state==='waiting').length;document.getElementById('stBoarded').textContent=stats.boarded;document.getElementById('stDeparted').textContent=stats.departed;const delayed=trains.some(t=>t.delay>10);serviceStatus.textContent=delayed?'Minor delay · recovering':'On schedule';serviceStatus.className='status-value '+(delayed?'warn':'ok');}
+function board(){const items=[];trains.filter(t=>t.state!=='depart').forEach(t=>items.push({eta:t.arriveAt,sys:t.sys,line:t.line,dir:t.dir,dest:t.dest,active:true,cars:t.cars,delay:t.delay}));SERVICES.forEach((svc,i)=>items.push({eta:nextArrival[i],sys:svc.sys,line:data(svc),dir:svc.dir,dest:svc.dir==='A'?data(svc).a:data(svc).b,active:false,cars:null}));items.sort((a,b)=>a.eta-b.eta);const top=items.slice(0,11);document.getElementById('boardCount').textContent=top.length+' scheduled / approaching';schedule.innerHTML=top.map(r=>{const sec=r.eta-sim;const eta=sec<=25?'NOW':sec<60?'<1m':Math.round(sec/60)+'m';const c=r.line.color;return `<div class="row ${sec<=25?'now':''}"><div class="rtime">${eta}</div><div><div class="dest">${esc(r.dest)}</div><div class="meta">${esc(r.line.label)} · ${r.sys==='bart'?'BART':'Muni'} · ${r.dir==='A'?'Outbound':'Inbound'}${r.cars?' · '+r.cars+' car':''}${r.delay>8?' · +'+Math.round(r.delay)+'s':''}</div></div><div class="badge" style="background:${c};color:${r.line.fg}">${esc(r.sys==='bart'?r.line.label:r.line.short)}</div></div>`}).join('')}
+
+// Initial crowd and traffic.
+function bootPax(){for(let i=0;i<95;i++){const svc=chooseService(),lvl=svc.sys==='bart'?PLATFORM.bart:PLATFORM.muni,wy=svc.dir==='A'?lvl.doorY-25:lvl.doorY+25,p=new Person({sys:svc.sys,dir:svc.dir,lineId:svc.id,x:rnd(180,1260),y:wy,state:'waiting'});pax.push(p)}}
+resize();resetNext();bootPax();spawnTrain(SERVICES[0],sim+5);spawnTrain(SERVICES[9],sim+9);spawnTrain(SERVICES[2],sim+14);logEvent('Simulation started','Civic Center / UN Plaza · 08:00 · normal service profile');updateHud();board();renderLog();
+
+document.querySelectorAll('.seg').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.speed;document.querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',x===b));updateHud()}));
+document.getElementById('pauseBtn').addEventListener('click',()=>{paused=!paused;const b=document.getElementById('pauseBtn');b.textContent=paused?'Resume':'Pause';b.classList.toggle('active',paused);updateHud()});
+document.querySelectorAll('.jump').forEach(b=>b.addEventListener('click',()=>{sim=+b.dataset.jump;trains=[];pax=[];stats.boarded=0;stats.alighted=0;stats.departed=0;events.length=0;lastRush=rush(sim);resetNext();bootPax();logEvent('Simulation time changed','Jumped to '+fmt(sim)+' · timetable recalculated');updateHud();board()}));
+window.addEventListener('keydown',e=>{if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();document.getElementById('pauseBtn').click()}const map={'1':1,'2':2,'4':4,'8':8};if(map[e.key]){speed=map[e.key];document.querySelectorAll('.seg').forEach(x=>x.classList.toggle('on',+x.dataset.speed===speed));updateHud()}});
+let last=performance.now(),hud=0;function loop(now){const real=Math.min(.05,(now-last)/1000);last=now;if(!paused){const dt=real*speed;sim+=dt;update(dt)}render();hud+=real;if(hud>.12){hud=0;updateHud();board()}requestAnimationFrame(loop)}requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
