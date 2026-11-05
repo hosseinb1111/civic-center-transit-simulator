@@ -6,6 +6,7 @@
   <title>Civic Center / UN Plaza — BART and Muni operations simulator</title>
   <meta name="description" content="Interactive cutaway simulator of Civic Center / UN Plaza station: BART and Muni Metro trains, platform displays, and passenger flow. Illustrative, synthetic data.">
   <meta name="theme-color" content="#f6f5f1">
+  <meta name="color-scheme" content="light dark">
   <meta name="color-scheme" content="light">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Civic Center / UN Plaza — BART and Muni operations simulator">
@@ -28,6 +29,7 @@
         <div id="clock" class="time">08:00:00</div>
         <div id="period" class="period">Morning rush</div>
         <div id="clockState" class="state">Running at 4×</div>
+        <button id="themeBtn" class="btn theme-toggle" type="button" aria-pressed="false">Dark mode</button>
       </div>
     </header>
 
@@ -137,6 +139,28 @@
         <a href="https://github.com/hosseinb1111/civic-center-transit-simulator" target="_blank" rel="noopener noreferrer">Project on GitHub</a>
       </p>
     </footer>
+
+    <div class="footer-bottom">
+      <span>Created with</span>
+      <span class="heart" role="img" aria-label="love">❤️</span>
+      <span>&amp;</span>
+      <span class="coffee" role="img" aria-label="coffee">☕</span>
+      <span>by</span>
+      <span class="credit-name">Hossein Seyed Bagheri</span>
+      <a
+        class="github-link"
+        href="https://github.com/hosseinb1111/civic-center-transit-simulator"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="View project on GitHub"
+        title="View on GitHub"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"
+             aria-hidden="true" focusable="false">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+      </a>
+    </div>
   </div>
 
   <script src="script.js"></script>

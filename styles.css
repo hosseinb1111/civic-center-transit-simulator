@@ -1,6 +1,16 @@
 /*
  * Civic Center / UN Plaza — simulator styles.
  *
+ * Signage-inspired theme with light and dark modes. Colours are tokens.
+ * The theme follows the system setting unless the theme button sets
+ * data-theme on <html>.
+ */
+
+/* ---------- Tokens: light ---------- */
+
+:root {
+  color-scheme: light;
+
  * Light, signage-inspired theme. One family (Archivo), one accent
  * (platform-edge yellow), square-ish corners, hairline structure.
  */
@@ -17,6 +27,53 @@
   --rule: #d5dae0;
   --rule-soft: #e6e9ed;
   --signal: #f2c230;
+  --row-now: #fff6d6;
+  --ok: #1f7a4d;
+  --warn: #9a5a00;
+
+  --radius: 4px;
+
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* ---------- Tokens: dark, following the system ---------- */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --paper: #101317;
+    --surface: #171c22;
+    --concrete: #1c2229;
+    --ink: #e9edf2;
+    --ink-2: #aab3be;
+    --steel: #7a8591;
+    --rule: #2b333d;
+    --rule-soft: #222a33;
+    --signal: #f2c230;
+    --row-now: #2a2a18;
+    --ok: #58c58a;
+    --warn: #f0b35a;
+  }
+}
+
+/* ---------- Tokens: dark, chosen explicitly ---------- */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #101317;
+  --surface: #171c22;
+  --concrete: #1c2229;
+  --ink: #e9edf2;
+  --ink-2: #aab3be;
+  --steel: #7a8591;
+  --rule: #2b333d;
+  --rule-soft: #222a33;
+  --signal: #f2c230;
+  --row-now: #2a2a18;
+  --ok: #58c58a;
+  --warn: #f0b35a;
 
   --ok: #1f7a4d;
   --warn: #9a5a00;
@@ -25,6 +82,8 @@
 
   --sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
+
+/* ---------- Base ---------- */
 
 *,
 *::before,
@@ -45,6 +104,7 @@ body {
   font-size: 15px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1,
@@ -110,6 +170,9 @@ h1 {
 
 .clock {
   text-align: right;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
 }
 
 .time {
@@ -131,6 +194,10 @@ h1 {
   font-size: 13px;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+}
+
+.theme-toggle {
+  margin-top: 10px;
 }
 
 /* ---------- Layout ---------- */
@@ -208,6 +275,7 @@ h1 {
   padding: 7px 11px;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .btn:hover,
@@ -221,6 +289,8 @@ h1 {
   border-color: var(--ink);
 }
 
+.btn.active,
+.theme-toggle[aria-pressed="true"] {
 .btn.active {
   background: var(--ink);
   color: var(--paper);
@@ -281,6 +351,13 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 16px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
 }
 
 .stat-label {
@@ -356,6 +433,7 @@ h1 {
 }
 
 .row.now {
+  background: var(--row-now);
   background: #fff6d6;
 }
 
@@ -448,6 +526,102 @@ h1 {
   font-weight: 600;
 }
 
+/* ---------- Footer credit (attribution block) ---------- */
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule, #d5dae0);
+  color: var(--ink-2, #4a525c);
+  font-size: 0.7rem;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.footer-bottom .heart,
+.footer-bottom .coffee {
+  display: inline-block;
+  font-size: 1em;
+  line-height: 1;
+  transform-origin: center;
+}
+
+.footer-bottom .heart {
+  animation: heart-beat 1.8s ease-in-out infinite;
+}
+
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  15%      { transform: scale(1.25); }
+  30%      { transform: scale(1); }
+  45%      { transform: scale(1.15); }
+}
+
+.footer-bottom .coffee {
+  animation: coffee-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes coffee-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40%      { transform: translateY(-2px) rotate(-6deg); }
+  70%      { transform: translateY(0) rotate(3deg); }
+}
+
+.footer-bottom .credit-name {
+  color: var(--ink, #1b1f24);
+  font-weight: 700;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 2px;
+  color: var(--ink, #1b1f24);
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--rule, #d5dae0);
+  border-radius: 50%;
+  text-decoration: none;
+  transition: transform 0.22s ease, background 0.22s ease,
+              color 0.22s ease, border-color 0.22s ease;
+}
+
+.github-link:hover {
+  transform: scale(1.12) translateY(-1px);
+  background: var(--signal, #f2c230);
+  color: #1b1f24;
+  border-color: var(--signal, #f2c230);
+}
+
+.github-link:active {
+  transform: scale(0.94);
+}
+
+.github-link:focus-visible {
+  outline: 2px solid var(--signal, #f2c230);
+  outline-offset: 3px;
+}
+
+.github-link svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+@media (max-width: 400px) {
+  .footer-bottom {
+    font-size: 0.65rem;
+  }
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1020px) {
@@ -462,6 +636,7 @@ h1 {
 
   .clock {
     text-align: left;
+    justify-items: start;
   }
 
   .station-wrap {
@@ -491,6 +666,26 @@ h1 {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
+
+  .footer-bottom .heart,
+  .footer-bottom .coffee {
+    animation: none !important;
+  }
+
+  .row {
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+  }
+}
+
+  .github-link {
+    transition: none !important;
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;

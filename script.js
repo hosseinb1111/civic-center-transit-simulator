@@ -5,12 +5,13 @@
  * BART / SFMTA station information. Headways, passenger counts, dwell
  * times and delays are synthetic.
  *
+ *   1. Configuration     world geometry, routes, timetable, palettes
  *   1. Configuration     world geometry, routes, timetable, palette
  *   2. State             clock, trains, passengers, log
  *   3. Agents            Train and Passenger
  *   4. Simulation step   timetable, spawning, movement
- *   5. Rendering         canvas scene
- *   6. Interface         HUD, schedule, log, controls, main loop
+ *   5. Rendering         canvas scene (light and dark)
+ *   6. Interface         theme, HUD, schedule, log, controls, main loop
  */
 (() => {
   'use strict';
@@ -32,6 +33,7 @@
   const MAX_LOG_EVENTS = 14;
   const MAX_SCHEDULE_ROWS = 11;
   const HUD_INTERVAL = 0.12;      // seconds (real time) between HUD refreshes
+  const THEME_KEY = 'civic-center-theme';
 
   // Passenger lanes and vertical geometry.
   const SHAFT_X = [120, 1318];
@@ -46,6 +48,113 @@
     muni: { trackA: 344, trackB: 450, islandTop: 366, islandBottom: 428, doorY: 382 },
     bart: { trackA: 592, trackB: 688, islandTop: 614, islandBottom: 670, doorY: 632 },
   };
+
+  // Scene palettes. Line colours come from LINES and are the same in both.
+  const PALETTES = {
+    light: {
+      paper: '#f6f5f1',
+      wall: '#dfe4e8',
+      wallRule: 'rgba(27, 31, 36, 0.05)',
+      lamp: 'rgba(255, 252, 240, 0.95)',
+      lampGlow: 'rgba(255, 252, 240, 0.35)',
+      ink: '#1b1f24',
+      ink2: '#4a525c',
+      signal: '#f2c230',
+      streetBand: '#cbd2d9',
+      entrance: '#ffffff',
+      entranceBar: '#b8c1ca',
+      gate: '#ffffff',
+      gateEdge: '#b3bdc7',
+      gateBart: '#3b7dd8',
+      gateMuni: '#2f9d64',
+      validator: '#2a3138',
+      panel: '#ffffff',
+      board: '#1b1f24',
+      boardText: '#f2c230',
+      signBg: '#1b1f24',
+      signText: '#f6f5f1',
+      track: '#7b858f',
+      trackBed: '#b9c1c9',
+      tie: 'rgba(27, 31, 36, 0.12)',
+      island: '#e7eaee',
+      tactile: 'rgba(242, 194, 48, 0.55)',
+      column: '#c3cad2',
+      columnHi: 'rgba(255, 255, 255, 0.7)',
+      columnBase: '#aab3bd',
+      escalator: '#6b7580',
+      escalatorStep: 'rgba(27, 31, 36, 0.22)',
+      escalatorPlate: '#8d97a2',
+      shaft: 'rgba(90, 140, 180, 0.10)',
+      shaftEdge: 'rgba(60, 100, 140, 0.32)',
+      lift: 'rgba(242, 194, 48, 0.16)',
+      carWindow: '#2a3138',
+      carLit: 'rgba(255, 244, 205, 0.85)',
+      carBoard: '#14181d',
+      carBoardText: '#ffc93c',
+      wheel: '#2a3138',
+      bogie: '#3a434d',
+      headlight: '#fffdf2',
+      glow: 'rgba(255, 250, 225, 0.55)',
+      trainShadow: 'rgba(27, 31, 36, 0.18)',
+      paxShadow: 'rgba(27, 31, 36, 0.16)',
+      bag: '#3e4650',
+      arrowMuni: '#2f7d57',
+      arrowBart: '#b98a00',
+    },
+    dark: {
+      paper: '#101317',
+      wall: '#1f262e',
+      wallRule: 'rgba(255, 255, 255, 0.035)',
+      lamp: 'rgba(255, 240, 200, 0.9)',
+      lampGlow: 'rgba(255, 240, 200, 0.22)',
+      ink: '#e9edf2',
+      ink2: '#aab3be',
+      signal: '#f2c230',
+      streetBand: '#2a323c',
+      entrance: '#232b34',
+      entranceBar: '#3a4450',
+      gate: '#2a323c',
+      gateEdge: '#46515d',
+      gateBart: '#6aa7ff',
+      gateMuni: '#49c188',
+      validator: '#0b0f14',
+      panel: '#20272f',
+      board: '#0b0e12',
+      boardText: '#f2c230',
+      signBg: '#e9edf2',
+      signText: '#101317',
+      track: '#8b96a2',
+      trackBed: '#141a20',
+      tie: 'rgba(255, 255, 255, 0.07)',
+      island: '#2b333c',
+      tactile: 'rgba(242, 194, 48, 0.4)',
+      column: '#343d48',
+      columnHi: 'rgba(255, 255, 255, 0.06)',
+      columnBase: '#2a323c',
+      escalator: '#8d98a4',
+      escalatorStep: 'rgba(255, 255, 255, 0.2)',
+      escalatorPlate: '#4a5561',
+      shaft: 'rgba(120, 170, 220, 0.08)',
+      shaftEdge: 'rgba(140, 180, 220, 0.3)',
+      lift: 'rgba(242, 194, 48, 0.12)',
+      carWindow: '#0c1116',
+      carLit: 'rgba(255, 236, 180, 0.55)',
+      carBoard: '#0b0e12',
+      carBoardText: '#ffc93c',
+      wheel: '#0c1116',
+      bogie: '#252d36',
+      headlight: '#fffbe8',
+      glow: 'rgba(255, 240, 200, 0.32)',
+      trainShadow: 'rgba(0, 0, 0, 0.45)',
+      paxShadow: 'rgba(0, 0, 0, 0.35)',
+      bag: '#6b7682',
+      arrowMuni: '#49c188',
+      arrowBart: '#f2c230',
+    },
+  };
+
+  // Active palette. Replaced when the theme changes.
+  let C = PALETTES.light;
 
   // Scene palette. Light, concrete-and-signage look; line colours come from LINES.
   const C = {
@@ -153,6 +262,20 @@
   };
   const destinationOf = (svc) => (svc.dir === 'A' ? svc.line.a : svc.line.b);
   const directionOf = (svc) => (svc.dir === 'A' ? 'Outbound' : 'Inbound');
+
+  // Mix a #rrggbb colour toward white (amount > 0) or black (amount < 0).
+  const shadeCache = new Map();
+  function shade(hex, amount) {
+    const key = hex + amount;
+    if (shadeCache.has(key)) return shadeCache.get(key);
+    const n = parseInt(hex.slice(1), 16);
+    const target = amount < 0 ? 0 : 255;
+    const p = Math.abs(amount);
+    const mix = (c) => Math.round(c + (target - c) * p);
+    const out = `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+    shadeCache.set(key, out);
+    return out;
+  }
 
   function fmtClock(t) {
     const s = ((Math.floor(t) % 86400) + 86400) % 86400;
@@ -597,6 +720,8 @@
   function drawCeilingLights(y) {
     for (let x = 60; x < W; x += 180) {
       const glow = ctx.createRadialGradient(x, y, 0, x, y, 115);
+      glow.addColorStop(0, C.lampGlow);
+      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       glow.addColorStop(0, 'rgba(255, 252, 240, 0.35)');
       glow.addColorStop(1, 'rgba(255, 252, 240, 0)');
       ctx.fillStyle = glow;
@@ -631,6 +756,7 @@
   function drawIsland(top, bottom) {
     ctx.fillStyle = C.island;
     ctx.fillRect(0, top, W, bottom - top);
+    ctx.fillStyle = C.signal;
     ctx.fillStyle = C.islandEdge;
     ctx.fillRect(0, top, W, 5);
     ctx.fillRect(0, bottom - 5, W, 5);
@@ -664,6 +790,7 @@
   }
 
   function drawLevelLabel(str, y) {
+    drawText(str, 24, y, { size: 18, weight: 700, color: C.ink2, baseline: 'middle' });
     drawText(str, 24, y, { size: 18, weight: 700, color: 'rgba(27, 31, 36, 0.32)', baseline: 'middle' });
   }
 
@@ -701,6 +828,7 @@
       ctx.strokeStyle = C.gateEdge;
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.fillStyle = i % 2 ? C.gateMuni : C.gateBart;
       ctx.fillStyle = i % 2 ? C.gateReaderMuni : C.gateReaderBart;
       ctx.beginPath();
       ctx.arc(x + 17, 168, 2.5, 0, TAU);
@@ -710,6 +838,8 @@
     });
 
     [
+      [300, 'BART', C.gateBart],
+      [1030, 'Muni', C.gateMuni],
       [300, 'BART', C.gateReaderBart],
       [1030, 'Muni', C.gateReaderMuni],
     ].forEach(([x, label, color]) => {
@@ -837,6 +967,89 @@
     }
   }
 
+  /*
+   * Train drawing. Coordinates for a car of width w and height h, with
+   * the body spanning y..y+h:
+   *   0.05h–0.25h  destination board (lead cars only)
+   *   0.30h–0.66h  window band (lit while doors are open)
+   *   0.80h–1.00h  skirt, in a darker shade of the line colour
+   * Bogies sit just below the body.
+   */
+
+  function drawBogies(x, y, w, h) {
+    const bogieTop = y + h - 1;
+    for (const frac of [0.2, 0.8]) {
+      const bx = x + w * frac - w * 0.09;
+      ctx.fillStyle = C.bogie;
+      roundRect(bx, bogieTop, w * 0.18, 5, 1.5);
+      ctx.fill();
+      ctx.fillStyle = C.wheel;
+      for (const wx of [bx + w * 0.04, bx + w * 0.14]) {
+        ctx.beginPath();
+        ctx.arc(wx, bogieTop + 7, 2.4, 0, TAU);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawPantograph(x, y, w) {
+    // Overhead collector on Muni cars: a pivoting arm and a contact shoe.
+    const px = x + w * 0.55;
+    ctx.strokeStyle = C.escalator;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px, y);
+    ctx.lineTo(px + 4, y - 9);
+    ctx.lineTo(px + 1, y - 13);
+    ctx.stroke();
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px - 6, y - 13);
+    ctx.lineTo(px + 7, y - 13);
+    ctx.stroke();
+  }
+
+  function drawCar(train, x, y, w, h, { lead, roofCar }) {
+    const base = train.line.color;
+    const bodyR = lead ? 9 : 4;
+
+    // Body: lit from above, rounded by a horizontal falloff.
+    const body = ctx.createLinearGradient(0, y, 0, y + h);
+    body.addColorStop(0, shade(base, 0.28));
+    body.addColorStop(0.55, base);
+    body.addColorStop(1, shade(base, -0.18));
+    ctx.fillStyle = body;
+    roundRect(x, y, w, h, bodyR);
+    ctx.fill();
+
+    const round = ctx.createLinearGradient(x, 0, x + w, 0);
+    round.addColorStop(0, 'rgba(0, 0, 0, 0.16)');
+    round.addColorStop(0.18, 'rgba(0, 0, 0, 0)');
+    round.addColorStop(0.82, 'rgba(0, 0, 0, 0)');
+    round.addColorStop(1, 'rgba(0, 0, 0, 0.16)');
+    ctx.fillStyle = round;
+    roundRect(x, y, w, h, bodyR);
+    ctx.fill();
+
+    // Skirt band along the bottom of the body.
+    ctx.fillStyle = shade(base, -0.35);
+    ctx.fillRect(x + 1, y + h * 0.8, w - 2, h * 0.2 - 1);
+
+    // Window band. Lit when the doors are open.
+    const wy = y + h * 0.3;
+    const wh = h * 0.36;
+    ctx.fillStyle = train.doorsOpen ? C.carLit : C.carWindow;
+    roundRect(x + w * 0.06, wy, w * 0.88, wh, 3);
+    ctx.fill();
+
+    // Window posts and a soft reflection across the glass.
+    ctx.fillStyle = shade(base, -0.45);
+    for (let k = 1; k < 4; k++) {
+      ctx.fillRect(x + w * 0.06 + (w * 0.88 * k) / 4 - 0.75, wy, 1.5, wh);
+    }
+    if (!train.doorsOpen) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
   function drawCar(train, x, y, w, h, lead) {
     ctx.fillStyle = train.line.color;
     roundRect(x, y, w, h, lead ? 7 : 3);
@@ -859,15 +1072,55 @@
       const front = train.sign > 0 ? x + w - 5 : x + 5;
       ctx.fillStyle = C.headlight;
       ctx.beginPath();
-      ctx.arc(front, y + h * 0.78, 2.3, 0, TAU);
+      ctx.moveTo(x + w * 0.1, wy + wh);
+      ctx.lineTo(x + w * 0.3, wy);
+      ctx.lineTo(x + w * 0.36, wy);
+      ctx.lineTo(x + w * 0.16, wy + wh);
+      ctx.closePath();
       ctx.fill();
+    }
+
+    // Roof highlight.
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillRect(x + 4, y + 1, w - 8, 1.5);
+
+    if (lead) {
+      // Destination board across the top of the car.
+      const bx = x + w * 0.16;
+      const bw = w * 0.68;
+      const by = y + h * 0.05;
+      const bh = h * 0.2;
+      ctx.save();
+      ctx.fillStyle = C.carBoard;
+      roundRect(bx, by, bw, bh, 2);
+      ctx.fill();
+      ctx.clip();
+      drawText(train.destination, bx + bw / 2, by + bh * 0.76, {
+        size: Math.max(6, h * 0.16),
+        weight: 700,
+        color: C.carBoardText,
+        align: 'center',
       drawText(train.destination, train.sign > 0 ? x + w - 12 : x + 12, y + h * 0.58, {
         size: 8,
         weight: 700,
         color: '#0b1118',
         align: train.sign > 0 ? 'right' : 'left',
       });
+      ctx.restore();
+
+      // Headlight at the front, tail light at the rear.
+      const isFront = train.sign > 0 ? x + w - 3 : x + 3;
+      ctx.fillStyle = C.headlight;
+      ctx.beginPath();
+      ctx.arc(isFront, y + h * 0.74, 2.2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a4d';
+      ctx.beginPath();
+      ctx.arc(train.sign > 0 ? x + 3 : x + w - 3, y + h * 0.74, 1.8, 0, TAU);
+      ctx.fill();
     }
+
+    if (roofCar && !train.isBart) drawPantograph(x, y, w);
   }
 
   function drawTrain(train) {
@@ -875,15 +1128,25 @@
     const y = train.trackY - train.height / 2;
 
     ctx.fillStyle = C.trainShadow;
+    roundRect(x0 + 8, y + train.height + 1, train.length - 16, 6, 3);
     roundRect(x0 + 8, y + train.height - 1, train.length - 16, 8, 4);
     ctx.fill();
 
     for (let i = 0; i < train.cars; i++) {
-      const lead = i === 0 || i === train.cars - 1;
-      drawCar(train, x0 + i * train.carLength + 2, y, train.carLength - 4, train.height, lead);
+      const x = x0 + i * train.carLength + 2;
+      drawBogies(x, y, train.carLength - 4, train.height);
+    }
+
+    for (let i = 0; i < train.cars; i++) {
+      drawCar(train, x0 + i * train.carLength + 2, y, train.carLength - 4, train.height, {
+        lead: i === 0 || i === train.cars - 1,
+        roofCar: i === 0,
+      });
     }
 
     if (train.doorsOpen) {
+      ctx.fillStyle = C.glow;
+      ctx.fillRect(x0, y - 10, train.length, 4);
       ctx.fillStyle = 'rgba(242, 194, 48, 0.16)';
       ctx.fillRect(x0, y - 12, train.length, train.height + 24);
     }
@@ -892,6 +1155,7 @@
       const fx = train.x + (train.sign * train.length) / 2;
       const glow = ctx.createRadialGradient(fx, train.trackY, 0, fx, train.trackY, 120);
       glow.addColorStop(0, C.glow);
+      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       glow.addColorStop(1, 'rgba(255, 250, 225, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
@@ -998,9 +1262,56 @@
     schedule: $('schedule'),
     feed: $('feed'),
     pause: $('pauseBtn'),
+    themeBtn: $('themeBtn'),
     speedButtons: document.querySelectorAll('[data-speed]'),
     jumpButtons: document.querySelectorAll('[data-jump]'),
   };
+
+  /* Theme ------------------------------------------------------------ */
+
+  function systemTheme() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function currentTheme() {
+    const forced = document.documentElement.dataset.theme;
+    return forced === 'light' || forced === 'dark' ? forced : systemTheme();
+  }
+
+  function applyTheme(theme) {
+    C = PALETTES[theme];
+    const dark = theme === 'dark';
+    dom.themeBtn.textContent = dark ? 'Light mode' : 'Dark mode';
+    dom.themeBtn.setAttribute('aria-pressed', String(dark));
+  }
+
+  function setTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+      // Storage can be unavailable (private mode); the choice then lasts for this visit only.
+    }
+    applyTheme(theme);
+  }
+
+  function initTheme() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (e) {
+      // Ignore; fall back to the system setting.
+    }
+    applyTheme(currentTheme());
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (!document.documentElement.dataset.theme) applyTheme(currentTheme());
+      });
+    }
+  }
+
+  /* HUD and lists ---------------------------------------------------- */
 
   function el(tag, className, content) {
     const node = document.createElement(tag);
@@ -1074,6 +1385,8 @@
     renderSchedule();
   }
 
+  /* Controls --------------------------------------------------------- */
+
   function setSpeed(speed) {
     sim.speed = speed;
     dom.speedButtons.forEach((button) => {
@@ -1099,6 +1412,7 @@
 
   function bindControls() {
     dom.pause.addEventListener('click', () => setPaused(!sim.paused));
+    dom.themeBtn.addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
     dom.speedButtons.forEach((button) =>
       button.addEventListener('click', () => setSpeed(Number(button.dataset.speed))),
     );
@@ -1119,6 +1433,8 @@
       }
     });
   }
+
+  /* Main loop -------------------------------------------------------- */
 
   let lastFrame = performance.now();
   let hudTimer = 0;
@@ -1143,6 +1459,7 @@
   }
 
   function init() {
+    initTheme();
     resetSimulation(START_TIME);
     logEvent('Simulation started', 'Civic Center / UN Plaza, 08:00, normal service profile');
     bindControls();
