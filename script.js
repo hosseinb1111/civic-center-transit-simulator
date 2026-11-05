@@ -5,12 +5,12 @@
  * BART / SFMTA station information. Headways, passenger counts, dwell
  * times and delays are synthetic.
  *
- *   1. Configuration     world geometry, routes, timetable
+ *   1. Configuration     world geometry, routes, timetable, palettes
  *   2. State             clock, trains, passengers, log
  *   3. Agents            Train and Passenger
  *   4. Simulation step   timetable, spawning, movement
- *   5. Rendering         canvas scene
- *   6. Interface         HUD, schedule, log, controls, main loop
+ *   5. Rendering         canvas scene (light and dark)
+ *   6. Interface         theme, HUD, schedule, log, controls, main loop
  */
 (() => {
   'use strict';
@@ -32,6 +32,7 @@
   const MAX_LOG_EVENTS = 14;
   const MAX_SCHEDULE_ROWS = 11;
   const HUD_INTERVAL = 0.12;      // seconds (real time) between HUD refreshes
+  const THEME_KEY = 'civic-center-theme';
 
   // Passenger lanes and vertical geometry.
   const SHAFT_X = [120, 1318];
@@ -47,16 +48,123 @@
     bart: { trackA: 592, trackB: 688, islandTop: 614, islandBottom: 670, doorY: 632 },
   };
 
+  // Scene palettes. Line colours come from LINES and are the same in both.
+  const PALETTES = {
+    light: {
+      paper: '#f6f5f1',
+      wall: '#dfe4e8',
+      wallRule: 'rgba(27, 31, 36, 0.05)',
+      lamp: 'rgba(255, 252, 240, 0.95)',
+      lampGlow: 'rgba(255, 252, 240, 0.35)',
+      ink: '#1b1f24',
+      ink2: '#4a525c',
+      signal: '#f2c230',
+      streetBand: '#cbd2d9',
+      entrance: '#ffffff',
+      entranceBar: '#b8c1ca',
+      gate: '#ffffff',
+      gateEdge: '#b3bdc7',
+      gateBart: '#3b7dd8',
+      gateMuni: '#2f9d64',
+      validator: '#2a3138',
+      panel: '#ffffff',
+      board: '#1b1f24',
+      boardText: '#f2c230',
+      signBg: '#1b1f24',
+      signText: '#f6f5f1',
+      track: '#7b858f',
+      trackBed: '#b9c1c9',
+      tie: 'rgba(27, 31, 36, 0.12)',
+      island: '#e7eaee',
+      tactile: 'rgba(242, 194, 48, 0.55)',
+      column: '#c3cad2',
+      columnHi: 'rgba(255, 255, 255, 0.7)',
+      columnBase: '#aab3bd',
+      escalator: '#6b7580',
+      escalatorStep: 'rgba(27, 31, 36, 0.22)',
+      escalatorPlate: '#8d97a2',
+      shaft: 'rgba(90, 140, 180, 0.10)',
+      shaftEdge: 'rgba(60, 100, 140, 0.32)',
+      lift: 'rgba(242, 194, 48, 0.16)',
+      carWindow: '#2a3138',
+      carLit: 'rgba(255, 244, 205, 0.85)',
+      carBoard: '#14181d',
+      carBoardText: '#ffc93c',
+      wheel: '#2a3138',
+      bogie: '#3a434d',
+      headlight: '#fffdf2',
+      glow: 'rgba(255, 250, 225, 0.55)',
+      trainShadow: 'rgba(27, 31, 36, 0.18)',
+      paxShadow: 'rgba(27, 31, 36, 0.16)',
+      bag: '#3e4650',
+      arrowMuni: '#2f7d57',
+      arrowBart: '#b98a00',
+    },
+    dark: {
+      paper: '#101317',
+      wall: '#1f262e',
+      wallRule: 'rgba(255, 255, 255, 0.035)',
+      lamp: 'rgba(255, 240, 200, 0.9)',
+      lampGlow: 'rgba(255, 240, 200, 0.22)',
+      ink: '#e9edf2',
+      ink2: '#aab3be',
+      signal: '#f2c230',
+      streetBand: '#2a323c',
+      entrance: '#232b34',
+      entranceBar: '#3a4450',
+      gate: '#2a323c',
+      gateEdge: '#46515d',
+      gateBart: '#6aa7ff',
+      gateMuni: '#49c188',
+      validator: '#0b0f14',
+      panel: '#20272f',
+      board: '#0b0e12',
+      boardText: '#f2c230',
+      signBg: '#e9edf2',
+      signText: '#101317',
+      track: '#8b96a2',
+      trackBed: '#141a20',
+      tie: 'rgba(255, 255, 255, 0.07)',
+      island: '#2b333c',
+      tactile: 'rgba(242, 194, 48, 0.4)',
+      column: '#343d48',
+      columnHi: 'rgba(255, 255, 255, 0.06)',
+      columnBase: '#2a323c',
+      escalator: '#8d98a4',
+      escalatorStep: 'rgba(255, 255, 255, 0.2)',
+      escalatorPlate: '#4a5561',
+      shaft: 'rgba(120, 170, 220, 0.08)',
+      shaftEdge: 'rgba(140, 180, 220, 0.3)',
+      lift: 'rgba(242, 194, 48, 0.12)',
+      carWindow: '#0c1116',
+      carLit: 'rgba(255, 236, 180, 0.55)',
+      carBoard: '#0b0e12',
+      carBoardText: '#ffc93c',
+      wheel: '#0c1116',
+      bogie: '#252d36',
+      headlight: '#fffbe8',
+      glow: 'rgba(255, 240, 200, 0.32)',
+      trainShadow: 'rgba(0, 0, 0, 0.45)',
+      paxShadow: 'rgba(0, 0, 0, 0.35)',
+      bag: '#6b7682',
+      arrowMuni: '#49c188',
+      arrowBart: '#f2c230',
+    },
+  };
+
+  // Active palette. Replaced when the theme changes.
+  let C = PALETTES.light;
+
   const PASSENGER_COLORS = [
-    '#e5b38b', '#c89978', '#a6b98e', '#8fb3cc', '#cda8ae', '#d9bf8b',
-    '#80a99f', '#c9b0d2', '#a9bfd3', '#c7a17e', '#aeb8c4',
+    '#b5562e', '#3d7a5c', '#2f5d8a', '#8a4f9e',
+    '#b8861a', '#4d6370', '#a23e4c', '#2c7e86',
   ];
 
   const ENTRANCES = [
     ['A1', 'Civic Center / Grove'], ['A2', 'Market & Hyde'],
     ['A3', 'UN Plaza'],             ['A4', 'Market & 7th'],
-    ['B1', 'Market · north side'],  ['B2', 'Market · south side'],
-    ['B3', 'Market · 1100 block'],  ['B4', 'Market · 7th side'],
+    ['B1', 'Market, north side'],   ['B2', 'Market, south side'],
+    ['B3', 'Market, 1100 block'],   ['B4', 'Market, 7th side'],
   ];
 
   // Routes. `peak` and `off` are headways in seconds; `a` and `b` are the
@@ -105,6 +213,20 @@
   const destinationOf = (svc) => (svc.dir === 'A' ? svc.line.a : svc.line.b);
   const directionOf = (svc) => (svc.dir === 'A' ? 'Outbound' : 'Inbound');
 
+  // Mix a #rrggbb colour toward white (amount > 0) or black (amount < 0).
+  const shadeCache = new Map();
+  function shade(hex, amount) {
+    const key = hex + amount;
+    if (shadeCache.has(key)) return shadeCache.get(key);
+    const n = parseInt(hex.slice(1), 16);
+    const target = amount < 0 ? 0 : 255;
+    const p = Math.abs(amount);
+    const mix = (c) => Math.round(c + (target - c) * p);
+    const out = `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+    shadeCache.set(key, out);
+    return out;
+  }
+
   function fmtClock(t) {
     const s = ((Math.floor(t) % 86400) + 86400) % 86400;
     const h = Math.floor(s / 3600);
@@ -116,12 +238,12 @@
   function periodName(t) {
     const h = (t % 86400) / 3600;
     if (h < 5) return 'Overnight';
-    if (h < 6.5) return 'Early Morning';
-    if (h < 9.5) return 'Morning Rush';
-    if (h < 15) return 'Midday Service';
-    if (h < 19) return 'Evening Rush';
-    if (h < 22) return 'Evening Service';
-    return 'Late Night';
+    if (h < 6.5) return 'Early morning';
+    if (h < 9.5) return 'Morning rush';
+    if (h < 15) return 'Midday';
+    if (h < 19) return 'Evening rush';
+    if (h < 22) return 'Evening';
+    return 'Late night';
   }
 
   function fmtMinutes(sec) {
@@ -229,7 +351,7 @@
       this.x = W / 2;
       this.state = 'dwell';
       this.t = 0;
-      const delayNote = this.delay > 0 ? ` · +${Math.round(this.delay)}s delay` : '';
+      const delayNote = this.delay > 0 ? `, ${Math.round(this.delay)} s late` : '';
       logEvent(`${this.line.label} ${this.vehicle} at platform`, `${this.destination}${delayNote}`);
     }
 
@@ -254,7 +376,7 @@
       }
       logEvent(
         `${this.line.label} doors open`,
-        `${this.boardingAssigned} boarding · ${this.alightingCount} alighting`,
+        `${this.boardingAssigned} boarding, ${this.alightingCount} alighting`,
       );
     }
 
@@ -264,7 +386,7 @@
       this.doorsOpen = false;
       logEvent(
         `${this.line.label} departing`,
-        `${this.boardingAssigned} boarded · ${this.alightingCount} alighted · doors closed`,
+        `${this.boardingAssigned} boarded, ${this.alightingCount} alighted, doors closed`,
       );
     }
   }
@@ -402,7 +524,7 @@
   function spawnTrain(svc, arriveAt) {
     if (sim.trains.length >= MAX_TRAINS) return;
     sim.trains.push(new Train(svc, arriveAt));
-    logEvent(`${svc.line.label} service approaching`, `${directionOf(svc)} · ${destinationOf(svc)}`);
+    logEvent(`${svc.line.label} service approaching`, `${directionOf(svc)}, ${destinationOf(svc)}`);
   }
 
   function step(dt) {
@@ -501,8 +623,7 @@
   const ctx = canvas.getContext('2d');
   const view = { dpr: 1, scale: 1, ox: 0, oy: 0 };
 
-  const FONT_UI = 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif';
-  const FONT_MONO = 'ui-monospace, SFMono-Regular, Menlo, monospace';
+  const FONT = 'Archivo, system-ui, -apple-system, "Segoe UI", sans-serif';
 
   function resizeCanvas() {
     const rect = canvas.getBoundingClientRect();
@@ -525,8 +646,8 @@
     ctx.closePath();
   }
 
-  function drawText(str, x, y, { font, color, align = 'left', baseline = 'alphabetic' }) {
-    ctx.font = font;
+  function drawText(str, x, y, { size = 12, weight = 500, color = C.ink, align = 'left', baseline = 'alphabetic' }) {
+    ctx.font = `${weight} ${size}px ${FONT}`;
     ctx.fillStyle = color;
     ctx.textAlign = align;
     ctx.textBaseline = baseline;
@@ -534,9 +655,9 @@
   }
 
   function drawWall(top, bottom) {
-    ctx.fillStyle = '#10151c';
+    ctx.fillStyle = C.wall;
     ctx.fillRect(0, top, W, bottom - top);
-    ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+    ctx.strokeStyle = C.wallRule;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = 0; x <= W; x += 48) {
@@ -549,28 +670,28 @@
   function drawCeilingLights(y) {
     for (let x = 60; x < W; x += 180) {
       const glow = ctx.createRadialGradient(x, y, 0, x, y, 115);
-      glow.addColorStop(0, 'rgba(255,240,210,0.15)');
-      glow.addColorStop(1, 'rgba(255,240,210,0)');
+      glow.addColorStop(0, C.lampGlow);
+      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(x, y, 115, 0, TAU);
       ctx.fill();
-      ctx.fillStyle = 'rgba(255,245,220,0.62)';
+      ctx.fillStyle = C.lamp;
       roundRect(x - 26, y - 3, 52, 5, 2);
       ctx.fill();
     }
   }
 
   function drawTrack(y0, y1) {
-    ctx.fillStyle = '#090c11';
+    ctx.fillStyle = C.trackBed;
     ctx.fillRect(0, y0, W, y1 - y0);
-    ctx.strokeStyle = '#38414d';
+    ctx.strokeStyle = C.track;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, y1 - 9);
     ctx.lineTo(W, y1 - 9);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+    ctx.strokeStyle = C.tie;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let x = 0; x < W; x += 22) {
@@ -581,73 +702,60 @@
   }
 
   function drawIsland(top, bottom) {
-    const g = ctx.createLinearGradient(0, top, 0, bottom);
-    g.addColorStop(0, '#303741');
-    g.addColorStop(0.5, '#292f38');
-    g.addColorStop(1, '#21262f');
-    ctx.fillStyle = g;
+    ctx.fillStyle = C.island;
     ctx.fillRect(0, top, W, bottom - top);
-    ctx.fillStyle = '#d1af34';
+    ctx.fillStyle = C.signal;
     ctx.fillRect(0, top, W, 5);
     ctx.fillRect(0, bottom - 5, W, 5);
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.fillRect(0, top + 6, W, 1);
   }
 
   function drawBeams(y) {
-    ctx.fillStyle = '#252c35';
+    ctx.fillStyle = C.columnBase;
     for (const x of COLUMN_X) ctx.fillRect(x, y, 24, 16);
   }
 
   function drawEscalator(x, y0, y1, w) {
-    ctx.strokeStyle = '#75808e';
+    ctx.strokeStyle = C.escalator;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, y0);
     ctx.lineTo(x + w, y1);
     ctx.stroke();
+    ctx.strokeStyle = C.escalatorStep;
+    ctx.beginPath();
     for (let i = 0; i < 13; i++) {
       const p = i / 12;
       const xx = x + p * w;
       const yy = y0 + p * (y1 - y0);
-      ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-      ctx.beginPath();
       ctx.moveTo(xx, yy);
       ctx.lineTo(xx + 6, yy + 4);
-      ctx.stroke();
     }
-    ctx.fillStyle = '#1f2630';
+    ctx.stroke();
+    ctx.fillStyle = C.escalatorPlate;
     ctx.fillRect(x - 6, y0 - 3, w + 12, 6);
     ctx.fillRect(x - 6, y1 - 3, w + 12, 6);
   }
 
   function drawLevelLabel(str, y) {
-    drawText(str, 24, y, {
-      font: '800 18px ' + FONT_UI,
-      color: 'rgba(235,242,248,0.22)',
-      baseline: 'middle',
-    });
+    drawText(str, 24, y, { size: 18, weight: 700, color: C.ink2, baseline: 'middle' });
   }
 
   function drawStreet() {
     drawWall(0, 92);
-    ctx.fillStyle = '#191e27';
+    ctx.fillStyle = C.streetBand;
     ctx.fillRect(0, 0, W, 16);
-    drawText('MARKET STREET', 25, 36, { font: '800 18px ' + FONT_UI, color: '#c8d0db' });
-    drawText('STREET LEVEL · CIVIC CENTER / UN PLAZA', 25, 54, {
-      font: '600 10px ' + FONT_MONO,
-      color: '#7d8b9b',
-    });
+    drawText('Market Street', 25, 40, { size: 20, weight: 700 });
+    drawText('Street level, Civic Center / UN Plaza', 25, 58, { size: 11, color: C.ink2 });
     drawCeilingLights(72);
 
     ENTRANCES.forEach(([code, name], i) => {
       const x = 70 + i * 164;
-      ctx.fillStyle = '#262d37';
-      roundRect(x, 70, 138, 32, 5);
+      ctx.fillStyle = C.entrance;
+      roundRect(x, 70, 138, 32, 3);
       ctx.fill();
-      drawText(code, x + 8, 84, { font: '900 9px ' + FONT_MONO, color: '#6ee7ff' });
-      drawText(name, x + 28, 84, { font: '600 9px ' + FONT_UI, color: '#dae3ec' });
-      ctx.fillStyle = '#11161d';
+      drawText(code, x + 8, 84, { size: 10, weight: 700 });
+      drawText(name, x + 28, 84, { size: 10, weight: 500, color: C.ink2 });
+      ctx.fillStyle = C.entranceBar;
       ctx.fillRect(x + 11, 92, 116, 3);
     });
   }
@@ -655,34 +763,39 @@
   function drawConcourse() {
     drawWall(105, 250);
     drawCeilingLights(116);
-    drawText('FARE CONCOURSE', 24, 130, { font: '800 11px ' + FONT_UI, color: '#d4dbe3' });
-    drawText('BART PAID AREA', 425, 136, { font: '600 9px ' + FONT_MONO, color: '#8794a5' });
-    drawText('MUNI PAID AREA', 928, 136, { font: '600 9px ' + FONT_MONO, color: '#8794a5' });
+    drawText('Fare concourse', 24, 132, { size: 13, weight: 700 });
+    drawText('BART paid area', 425, 136, { size: 11, color: C.ink2 });
+    drawText('Muni paid area', 928, 136, { size: 11, color: C.ink2 });
 
     FARE_GATE_X.forEach((x, i) => {
-      ctx.fillStyle = '#242c36';
-      roundRect(x, 150, 34, 62, 4);
+      ctx.fillStyle = C.gate;
+      roundRect(x, 150, 34, 62, 3);
       ctx.fill();
-      ctx.fillStyle = i % 2 ? '#32d56e' : '#54a7ff';
+      ctx.strokeStyle = C.gateEdge;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = i % 2 ? C.gateMuni : C.gateBart;
       ctx.beginPath();
-      ctx.arc(x + 17, 168, 2.3, 0, TAU);
+      ctx.arc(x + 17, 168, 2.5, 0, TAU);
       ctx.fill();
-      ctx.fillStyle = '#0c1117';
+      ctx.fillStyle = C.validator;
       ctx.fillRect(x + 7, 178, 20, 17);
     });
 
     [
-      [300, 'BART', '#5da9ff'],
-      [1030, 'MUNI', '#2e79c7'],
+      [300, 'BART', C.gateBart],
+      [1030, 'Muni', C.gateMuni],
     ].forEach(([x, label, color]) => {
-      ctx.fillStyle = '#1a2029';
-      roundRect(x, 147, 180, 66, 6);
+      ctx.fillStyle = C.panel;
+      roundRect(x, 147, 180, 66, 4);
       ctx.fill();
-      drawText(label, x + 14, 170, { font: '900 12px ' + FONT_UI, color });
-      drawText('Clipper / information', x + 14, 189, { font: '9px ' + FONT_UI, color: '#8e9aa8' });
+      ctx.strokeStyle = C.gateEdge;
+      ctx.stroke();
+      drawText(label, x + 14, 172, { size: 15, weight: 800, color });
+      drawText('Clipper and information', x + 14, 191, { size: 11, color: C.ink2 });
     });
 
-    ctx.strokeStyle = '#4a5563';
+    ctx.strokeStyle = C.ink2;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(90, 235);
@@ -700,8 +813,8 @@
     drawTrack(432, 464);
     drawIsland(366, 428);
     drawCeilingLights(298);
-    drawLevelLabel('MUNI METRO', 386);
-    drawText('PLATFORM · J K L M N', W - 210, 386, { font: '600 9px ' + FONT_MONO, color: '#8592a1' });
+    drawLevelLabel('Muni Metro', 386);
+    drawText('Platform for J, K, L, M and N', W - 210, 386, { size: 11, color: C.ink2, baseline: 'middle' });
     drawBeams(277);
     drawEscalator(205, 252, 368, 48);
     drawEscalator(1185, 252, 368, 48);
@@ -714,8 +827,8 @@
     drawIsland(614, 670);
     drawCeilingLights(543);
     drawLevelLabel('BART', 632);
-    drawText('PLATFORM 2 · NORTHBOUND', W - 270, 626, { font: '600 9px ' + FONT_MONO, color: '#8592a1' });
-    drawText('PLATFORM 1 · SOUTHBOUND', W - 270, 650, { font: '600 9px ' + FONT_MONO, color: '#8592a1' });
+    drawText('Platform 2, northbound', W - 270, 626, { size: 11, color: C.ink2, baseline: 'middle' });
+    drawText('Platform 1, southbound', W - 270, 650, { size: 11, color: C.ink2, baseline: 'middle' });
     drawBeams(522);
     drawEscalator(245, 487, 616, 66);
     drawEscalator(1145, 487, 616, 66);
@@ -723,76 +836,73 @@
 
   function drawColumns() {
     for (const x of COLUMN_X) {
-      ctx.fillStyle = '#1f2630';
+      ctx.fillStyle = C.column;
       ctx.fillRect(x, 292, 24, 438);
-      ctx.fillStyle = 'rgba(255,255,255,0.035)';
+      ctx.fillStyle = C.columnHi;
       ctx.fillRect(x + 3, 292, 4, 438);
     }
   }
 
   function drawShafts() {
     for (const x of SHAFT_X) {
-      ctx.fillStyle = 'rgba(175,215,255,0.06)';
+      ctx.fillStyle = C.shaft;
       ctx.fillRect(x - 24, SHAFT_TOP, 48, SHAFT_BOTTOM - SHAFT_TOP);
-      ctx.strokeStyle = 'rgba(190,220,255,0.20)';
+      ctx.strokeStyle = C.shaftEdge;
       ctx.lineWidth = 1;
       ctx.strokeRect(x - 23.5, SHAFT_TOP + 0.5, 47, SHAFT_BOTTOM - SHAFT_TOP - 1);
-      ctx.fillStyle = 'rgba(255,240,200,0.10)';
+      ctx.fillStyle = C.lift;
       ctx.fillRect(x - 24, 365, 48, 62);
       ctx.fillRect(x - 24, 615, 48, 55);
-      drawText('ELEVATOR', x, 350, { font: '8px ' + FONT_MONO, color: '#92a2b3', align: 'center' });
+      drawText('Lift', x, 350, { size: 10, weight: 600, color: C.ink2, align: 'center' });
     }
   }
 
   function drawStationSigns() {
     [
-      ['CIVIC CENTER', W / 2 - 90, 233],
-      ['UN PLAZA', W / 2 + 30, 233],
-      ['CIVIC CENTER', W / 2 - 70, 500],
+      ['Civic Center', W / 2 - 90, 233],
+      ['UN Plaza', W / 2 + 30, 233],
+      ['Civic Center', W / 2 - 70, 500],
     ].forEach(([label, x, y]) => {
-      ctx.fillStyle = '#0b1118';
-      roundRect(x, y, 120, 22, 4);
+      ctx.fillStyle = C.signBg;
+      roundRect(x, y, 120, 22, 3);
       ctx.fill();
-      ctx.strokeStyle = '#42505f';
-      ctx.stroke();
-      drawText(label, x + 60, y + 14, { font: '800 8px ' + FONT_UI, color: '#eaf0f6', align: 'center' });
+      drawText(label, x + 60, y + 15, { size: 11, weight: 700, color: C.signText, align: 'center' });
     });
   }
 
   function drawLedBoard(x, y, w, title, system) {
-    ctx.fillStyle = '#11151b';
-    roundRect(x, y, w, 52, 4);
+    ctx.fillStyle = C.board;
+    roundRect(x, y, w, 52, 3);
     ctx.fill();
-    ctx.strokeStyle = '#2c3643';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    drawText(title, x + 9, y + 12, { font: '800 8px ' + FONT_MONO, color: '#ff515d' });
+    drawText(title, x + 9, y + 14, { size: 9, weight: 700, color: C.signText });
 
     upcoming((line) => line.system === system, 3).forEach((row, i) => {
-      const ty = y + 25 + i * 10;
+      const ty = y + 27 + i * 10;
       drawText(`${row.svc.line.short}  ${destinationOf(row.svc)}`, x + 9, ty, {
-        font: '600 8px ' + FONT_MONO,
-        color: '#f9c865',
+        size: 9,
+        weight: 600,
+        color: C.boardText,
       });
       drawText(formatEta(row), x + w - 9, ty, {
-        font: '600 8px ' + FONT_MONO,
-        color: '#f9c865',
+        size: 9,
+        weight: 600,
+        color: C.boardText,
         align: 'right',
       });
     });
   }
 
   function drawFloorDetails() {
+    ctx.fillStyle = C.tactile;
     for (const y of [366, 428, 614, 670]) {
-      ctx.fillStyle = 'rgba(249,210,69,0.24)';
       for (let x = 22; x < W; x += 22) {
         ctx.beginPath();
         ctx.arc(x, y, 1.4, 0, TAU);
         ctx.fill();
       }
     }
+    ctx.fillStyle = C.columnBase;
     for (const x of COLUMN_X) {
-      ctx.fillStyle = '#11161d';
       roundRect(x - 5, 352, 34, 12, 2);
       ctx.fill();
       roundRect(x - 5, 600, 34, 12, 2);
@@ -800,61 +910,166 @@
     }
   }
 
-  function drawCar(train, x, y, w, h, lead) {
-    ctx.fillStyle = train.line.color;
-    roundRect(x, y, w, h, lead ? 8 : 4);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.fillRect(x, y, w, 2);
+  /*
+   * Train drawing. Coordinates for a car of width w and height h, with
+   * the body spanning y..y+h:
+   *   0.05h–0.25h  destination board (lead cars only)
+   *   0.30h–0.66h  window band (lit while doors are open)
+   *   0.80h–1.00h  skirt, in a darker shade of the line colour
+   * Bogies sit just below the body.
+   */
 
-    // Windows and door seams.
-    ctx.fillStyle = '#202a35';
-    roundRect(x + w * 0.08, y + h * 0.18, w * 0.84, h * 0.32, 3);
+  function drawBogies(x, y, w, h) {
+    const bogieTop = y + h - 1;
+    for (const frac of [0.2, 0.8]) {
+      const bx = x + w * frac - w * 0.09;
+      ctx.fillStyle = C.bogie;
+      roundRect(bx, bogieTop, w * 0.18, 5, 1.5);
+      ctx.fill();
+      ctx.fillStyle = C.wheel;
+      for (const wx of [bx + w * 0.04, bx + w * 0.14]) {
+        ctx.beginPath();
+        ctx.arc(wx, bogieTop + 7, 2.4, 0, TAU);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawPantograph(x, y, w) {
+    // Overhead collector on Muni cars: a pivoting arm and a contact shoe.
+    const px = x + w * 0.55;
+    ctx.strokeStyle = C.escalator;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px, y);
+    ctx.lineTo(px + 4, y - 9);
+    ctx.lineTo(px + 1, y - 13);
+    ctx.stroke();
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px - 6, y - 13);
+    ctx.lineTo(px + 7, y - 13);
+    ctx.stroke();
+  }
+
+  function drawCar(train, x, y, w, h, { lead, roofCar }) {
+    const base = train.line.color;
+    const bodyR = lead ? 9 : 4;
+
+    // Body: lit from above, rounded by a horizontal falloff.
+    const body = ctx.createLinearGradient(0, y, 0, y + h);
+    body.addColorStop(0, shade(base, 0.28));
+    body.addColorStop(0.55, base);
+    body.addColorStop(1, shade(base, -0.18));
+    ctx.fillStyle = body;
+    roundRect(x, y, w, h, bodyR);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    for (let k = 1; k < 4; k++) ctx.fillRect(x + w * 0.08 + k * (w * 0.84 / 4), y + h * 0.19, 1, h * 0.29);
-    ctx.fillStyle = 'rgba(10,14,20,0.36)';
-    for (let k = 1; k < 3; k++) ctx.fillRect(x + (w * k) / 3, y + h * 0.12, 2, h * 0.72);
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(x + w * 0.06, y + h * 0.68, w * 0.88, 2);
+
+    const round = ctx.createLinearGradient(x, 0, x + w, 0);
+    round.addColorStop(0, 'rgba(0, 0, 0, 0.16)');
+    round.addColorStop(0.18, 'rgba(0, 0, 0, 0)');
+    round.addColorStop(0.82, 'rgba(0, 0, 0, 0)');
+    round.addColorStop(1, 'rgba(0, 0, 0, 0.16)');
+    ctx.fillStyle = round;
+    roundRect(x, y, w, h, bodyR);
+    ctx.fill();
+
+    // Skirt band along the bottom of the body.
+    ctx.fillStyle = shade(base, -0.35);
+    ctx.fillRect(x + 1, y + h * 0.8, w - 2, h * 0.2 - 1);
+
+    // Window band. Lit when the doors are open.
+    const wy = y + h * 0.3;
+    const wh = h * 0.36;
+    ctx.fillStyle = train.doorsOpen ? C.carLit : C.carWindow;
+    roundRect(x + w * 0.06, wy, w * 0.88, wh, 3);
+    ctx.fill();
+
+    // Window posts and a soft reflection across the glass.
+    ctx.fillStyle = shade(base, -0.45);
+    for (let k = 1; k < 4; k++) {
+      ctx.fillRect(x + w * 0.06 + (w * 0.88 * k) / 4 - 0.75, wy, 1.5, wh);
+    }
+    if (!train.doorsOpen) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.1, wy + wh);
+      ctx.lineTo(x + w * 0.3, wy);
+      ctx.lineTo(x + w * 0.36, wy);
+      ctx.lineTo(x + w * 0.16, wy + wh);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Roof highlight.
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillRect(x + 4, y + 1, w - 8, 1.5);
 
     if (lead) {
-      const front = train.sign > 0 ? x + w - 5 : x + 5;
-      ctx.fillStyle = '#fff9df';
-      ctx.beginPath();
-      ctx.arc(front, y + h * 0.78, 2.3, 0, TAU);
+      // Destination board across the top of the car.
+      const bx = x + w * 0.16;
+      const bw = w * 0.68;
+      const by = y + h * 0.05;
+      const bh = h * 0.2;
+      ctx.save();
+      ctx.fillStyle = C.carBoard;
+      roundRect(bx, by, bw, bh, 2);
       ctx.fill();
-      drawText(train.destination, train.sign > 0 ? x + w - 12 : x + 12, y + h * 0.58, {
-        font: '700 7px ' + FONT_MONO,
-        color: '#0b1118',
-        align: train.sign > 0 ? 'right' : 'left',
+      ctx.clip();
+      drawText(train.destination, bx + bw / 2, by + bh * 0.76, {
+        size: Math.max(6, h * 0.16),
+        weight: 700,
+        color: C.carBoardText,
+        align: 'center',
       });
+      ctx.restore();
+
+      // Headlight at the front, tail light at the rear.
+      const isFront = train.sign > 0 ? x + w - 3 : x + 3;
+      ctx.fillStyle = C.headlight;
+      ctx.beginPath();
+      ctx.arc(isFront, y + h * 0.74, 2.2, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = '#ff5a4d';
+      ctx.beginPath();
+      ctx.arc(train.sign > 0 ? x + 3 : x + w - 3, y + h * 0.74, 1.8, 0, TAU);
+      ctx.fill();
     }
+
+    if (roofCar && !train.isBart) drawPantograph(x, y, w);
   }
 
   function drawTrain(train) {
     const x0 = train.x - train.length / 2;
     const y = train.trackY - train.height / 2;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.42)';
-    roundRect(x0 + 8, y + train.height - 1, train.length - 16, 8, 4);
+    ctx.fillStyle = C.trainShadow;
+    roundRect(x0 + 8, y + train.height + 1, train.length - 16, 6, 3);
     ctx.fill();
 
     for (let i = 0; i < train.cars; i++) {
-      const lead = i === 0 || i === train.cars - 1;
-      drawCar(train, x0 + i * train.carLength + 2, y, train.carLength - 4, train.height, lead);
+      const x = x0 + i * train.carLength + 2;
+      drawBogies(x, y, train.carLength - 4, train.height);
+    }
+
+    for (let i = 0; i < train.cars; i++) {
+      drawCar(train, x0 + i * train.carLength + 2, y, train.carLength - 4, train.height, {
+        lead: i === 0 || i === train.cars - 1,
+        roofCar: i === 0,
+      });
     }
 
     if (train.doorsOpen) {
-      ctx.fillStyle = 'rgba(255,240,192,0.10)';
-      ctx.fillRect(x0, y - 12, train.length, train.height + 24);
+      ctx.fillStyle = C.glow;
+      ctx.fillRect(x0, y - 10, train.length, 4);
     }
 
     if (train.state !== 'dwell') {
       const fx = train.x + (train.sign * train.length) / 2;
       const glow = ctx.createRadialGradient(fx, train.trackY, 0, fx, train.trackY, 120);
-      glow.addColorStop(0, 'rgba(255,248,220,0.4)');
-      glow.addColorStop(1, 'rgba(255,248,220,0)');
+      glow.addColorStop(0, C.glow);
+      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(fx, train.trackY, 120, 0, TAU);
@@ -865,7 +1080,7 @@
   function drawPassenger(p, now) {
     const bob = p.state === 'waiting' ? Math.sin(now / 500 + p.phase) * 0.4 : 0;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.26)';
+    ctx.fillStyle = C.paxShadow;
     ctx.beginPath();
     ctx.ellipse(p.x, p.y + p.radius * 1.05, p.radius * 1.1, p.radius * 0.35, 0, 0, TAU);
     ctx.fill();
@@ -874,18 +1089,18 @@
     ctx.beginPath();
     ctx.arc(p.x, p.y + bob, p.radius, 0, TAU);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
     ctx.beginPath();
     ctx.arc(p.x - p.radius * 0.28, p.y - p.radius * 0.3 + bob, p.radius * 0.35, 0, TAU);
     ctx.fill();
 
     if (p.hasBag) {
-      ctx.fillStyle = '#465260';
+      ctx.fillStyle = C.bag;
       roundRect(p.x - p.radius * 0.9, p.y - p.radius * 0.1, Math.max(2, p.radius * 0.6), p.radius * 1.15, 1.5);
       ctx.fill();
     }
     if (p.hasBike) {
-      ctx.strokeStyle = '#bdc7d1';
+      ctx.strokeStyle = C.escalator;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(p.x - 5, p.y + 7, 4, 0, TAU);
@@ -911,14 +1126,6 @@
     ctx.stroke();
   }
 
-  function drawVignette() {
-    const g = ctx.createRadialGradient(W / 2, H / 2, 260, W / 2, H / 2, 850);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.58)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-  }
-
   function draw(now) {
     // Map world units to device pixels once per frame.
     const k = view.dpr * view.scale;
@@ -926,7 +1133,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(k, 0, 0, k, view.dpr * view.ox, view.dpr * view.oy);
 
-    ctx.fillStyle = '#05070a';
+    ctx.fillStyle = C.paper;
     ctx.fillRect(0, 0, W, H);
 
     drawStreet();
@@ -943,9 +1150,8 @@
     for (const train of sim.trains) drawTrain(train);
     for (const p of sim.passengers) drawPassenger(p, now);
 
-    drawDirectionArrow(W - 100, 384, '#45d483');
-    drawDirectionArrow(W - 100, 632, '#f7cf42');
-    drawVignette();
+    drawDirectionArrow(W - 100, 384, C.arrowMuni);
+    drawDirectionArrow(W - 100, 632, C.arrowBart);
   }
 
   /* ------------------------------------------------------------------ *
@@ -969,9 +1175,56 @@
     schedule: $('schedule'),
     feed: $('feed'),
     pause: $('pauseBtn'),
+    themeBtn: $('themeBtn'),
     speedButtons: document.querySelectorAll('[data-speed]'),
     jumpButtons: document.querySelectorAll('[data-jump]'),
   };
+
+  /* Theme ------------------------------------------------------------ */
+
+  function systemTheme() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function currentTheme() {
+    const forced = document.documentElement.dataset.theme;
+    return forced === 'light' || forced === 'dark' ? forced : systemTheme();
+  }
+
+  function applyTheme(theme) {
+    C = PALETTES[theme];
+    const dark = theme === 'dark';
+    dom.themeBtn.textContent = dark ? 'Light mode' : 'Dark mode';
+    dom.themeBtn.setAttribute('aria-pressed', String(dark));
+  }
+
+  function setTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+      // Storage can be unavailable (private mode); the choice then lasts for this visit only.
+    }
+    applyTheme(theme);
+  }
+
+  function initTheme() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (e) {
+      // Ignore; fall back to the system setting.
+    }
+    applyTheme(currentTheme());
+
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (!document.documentElement.dataset.theme) applyTheme(currentTheme());
+      });
+    }
+  }
+
+  /* HUD and lists ---------------------------------------------------- */
 
   function el(tag, className, content) {
     const node = document.createElement(tag);
@@ -1004,8 +1257,8 @@
         const main = el('div');
         main.append(el('div', 'dest', destinationOf(row.svc)));
         const details = [line.label, line.system === 'bart' ? 'BART' : 'Muni', directionOf(row.svc), row.status];
-        if (row.delay > 8) details.push(`+${Math.round(row.delay)}s`);
-        main.append(el('div', 'meta', details.join(' · ')));
+        if (row.delay > 8) details.push(`${Math.round(row.delay)} s late`);
+        main.append(el('div', 'meta', details.join(', ')));
         item.append(main);
 
         const badge = el('div', 'badge', line.system === 'bart' ? line.label : line.short);
@@ -1028,7 +1281,7 @@
   function updateHud() {
     dom.clock.textContent = fmtClock(sim.time);
     dom.period.textContent = periodName(sim.time);
-    dom.clockState.textContent = `${sim.paused ? 'Paused' : 'Running'} · ${sim.speed}×`;
+    dom.clockState.textContent = `${sim.paused ? 'Paused' : 'Running'} at ${sim.speed}×`;
 
     dom.dwelling.textContent = sim.trains.filter((t) => t.state === 'dwell').length;
     dom.waiting.textContent = sim.passengers.filter((p) => p.state === 'waiting').length;
@@ -1036,14 +1289,16 @@
     dom.departed.textContent = sim.stats.departed;
 
     const delayed = sim.trains.some((t) => t.delay > 10 && t.state !== 'depart');
-    dom.service.textContent = delayed ? 'Minor delay · recovering' : 'On schedule';
-    dom.service.className = `status-value ${delayed ? 'warn' : 'ok'}`;
-    dom.headways.textContent = `BART ${fmtMinutes(fastestHeadway('bart'))} · Muni ${fmtMinutes(fastestHeadway('muni'))}`;
+    dom.service.textContent = delayed ? 'Minor delay, recovering' : 'On schedule';
+    dom.service.className = delayed ? 'warn' : 'ok';
+    dom.headways.textContent = `BART ${fmtMinutes(fastestHeadway('bart'))}, Muni ${fmtMinutes(fastestHeadway('muni'))}`;
     dom.trains.textContent = sim.trains.length;
     dom.paxInStation.textContent = sim.passengers.length;
 
     renderSchedule();
   }
+
+  /* Controls --------------------------------------------------------- */
 
   function setSpeed(speed) {
     sim.speed = speed;
@@ -1064,12 +1319,13 @@
 
   function jumpTo(time) {
     resetSimulation(time);
-    logEvent('Simulation time changed', `Jumped to ${fmtClock(time)} · timetable recalculated`);
+    logEvent('Simulation time changed', `Jumped to ${fmtClock(time)}, timetable recalculated`);
     updateHud();
   }
 
   function bindControls() {
     dom.pause.addEventListener('click', () => setPaused(!sim.paused));
+    dom.themeBtn.addEventListener('click', () => setTheme(currentTheme() === 'dark' ? 'light' : 'dark'));
     dom.speedButtons.forEach((button) =>
       button.addEventListener('click', () => setSpeed(Number(button.dataset.speed))),
     );
@@ -1090,6 +1346,8 @@
       }
     });
   }
+
+  /* Main loop -------------------------------------------------------- */
 
   let lastFrame = performance.now();
   let hudTimer = 0;
@@ -1114,8 +1372,9 @@
   }
 
   function init() {
+    initTheme();
     resetSimulation(START_TIME);
-    logEvent('Simulation started', 'Civic Center / UN Plaza · 08:00 · normal service profile');
+    logEvent('Simulation started', 'Civic Center / UN Plaza, 08:00, normal service profile');
     bindControls();
     setSpeed(sim.speed);
     setPaused(sim.paused);
