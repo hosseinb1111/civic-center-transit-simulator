@@ -11,6 +11,13 @@
 :root {
   color-scheme: light;
 
+ * Light, signage-inspired theme. One family (Archivo), one accent
+ * (platform-edge yellow), square-ish corners, hairline structure.
+ */
+
+:root {
+  color-scheme: light;
+
   --paper: #f6f5f1;
   --surface: #ffffff;
   --concrete: #e4e7ea;
@@ -67,6 +74,13 @@
   --row-now: #2a2a18;
   --ok: #58c58a;
   --warn: #f0b35a;
+
+  --ok: #1f7a4d;
+  --warn: #9a5a00;
+
+  --radius: 4px;
+
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 /* ---------- Base ---------- */
@@ -176,6 +190,7 @@ h1 {
 }
 
 .state {
+  margin-top: 2px;
   font-size: 13px;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
@@ -276,6 +291,7 @@ h1 {
 
 .btn.active,
 .theme-toggle[aria-pressed="true"] {
+.btn.active {
   background: var(--ink);
   color: var(--paper);
 }
@@ -335,6 +351,13 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 16px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
 }
 
 .stat-label {
@@ -411,6 +434,7 @@ h1 {
 
 .row.now {
   background: var(--row-now);
+  background: #fff6d6;
 }
 
 .rtime {
@@ -655,7 +679,15 @@ h1 {
     animation: none !important;
   }
 
+  .row {
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+  }
+}
+
   .github-link {
     transition: none !important;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
   }
 }

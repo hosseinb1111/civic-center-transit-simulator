@@ -6,6 +6,7 @@
  * times and delays are synthetic.
  *
  *   1. Configuration     world geometry, routes, timetable, palettes
+ *   1. Configuration     world geometry, routes, timetable, palette
  *   2. State             clock, trains, passengers, log
  *   3. Agents            Train and Passenger
  *   4. Simulation step   timetable, spawning, movement
@@ -154,6 +155,55 @@
 
   // Active palette. Replaced when the theme changes.
   let C = PALETTES.light;
+
+  // Scene palette. Light, concrete-and-signage look; line colours come from LINES.
+  const C = {
+    paper: '#f6f5f1',
+    wall: '#dfe4e8',
+    wallRule: 'rgba(27, 31, 36, 0.05)',
+    ceiling: '#fbfbfa',
+    lamp: 'rgba(255, 252, 240, 0.95)',
+    ink: '#1b1f24',
+    ink2: '#4a525c',
+    signal: '#f2c230',
+    streetBand: '#cbd2d9',
+    entrance: '#ffffff',
+    entranceBar: '#b8c1ca',
+    gate: '#ffffff',
+    gateEdge: '#b3bdc7',
+    gateReaderBart: '#3b7dd8',
+    gateReaderMuni: '#2f9d64',
+    validator: '#2a3138',
+    board: '#1b1f24',
+    boardText: '#f2c230',
+    signBg: '#1b1f24',
+    signText: '#f6f5f1',
+    panel: '#ffffff',
+    track: '#7b858f',
+    trackBed: '#b9c1c9',
+    tie: 'rgba(27, 31, 36, 0.12)',
+    island: '#e7eaee',
+    islandEdge: '#f2c230',
+    tactile: 'rgba(242, 194, 48, 0.55)',
+    column: '#c3cad2',
+    columnHi: 'rgba(255, 255, 255, 0.7)',
+    columnBase: '#aab3bd',
+    escalator: '#6b7580',
+    escalatorStep: 'rgba(27, 31, 36, 0.22)',
+    escalatorPlate: '#8d97a2',
+    shaft: 'rgba(90, 140, 180, 0.10)',
+    shaftEdge: 'rgba(60, 100, 140, 0.32)',
+    lift: 'rgba(242, 194, 48, 0.16)',
+    carWindow: '#2a3138',
+    carShine: 'rgba(255, 255, 255, 0.35)',
+    headlight: '#fffdf2',
+    glow: 'rgba(255, 250, 225, 0.55)',
+    trainShadow: 'rgba(27, 31, 36, 0.18)',
+    paxShadow: 'rgba(27, 31, 36, 0.16)',
+    bag: '#3e4650',
+    arrowMuni: '#2f7d57',
+    arrowBart: '#b98a00',
+  };
 
   const PASSENGER_COLORS = [
     '#b5562e', '#3d7a5c', '#2f5d8a', '#8a4f9e',
@@ -672,6 +722,8 @@
       const glow = ctx.createRadialGradient(x, y, 0, x, y, 115);
       glow.addColorStop(0, C.lampGlow);
       glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      glow.addColorStop(0, 'rgba(255, 252, 240, 0.35)');
+      glow.addColorStop(1, 'rgba(255, 252, 240, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(x, y, 115, 0, TAU);
@@ -705,6 +757,7 @@
     ctx.fillStyle = C.island;
     ctx.fillRect(0, top, W, bottom - top);
     ctx.fillStyle = C.signal;
+    ctx.fillStyle = C.islandEdge;
     ctx.fillRect(0, top, W, 5);
     ctx.fillRect(0, bottom - 5, W, 5);
   }
@@ -738,6 +791,7 @@
 
   function drawLevelLabel(str, y) {
     drawText(str, 24, y, { size: 18, weight: 700, color: C.ink2, baseline: 'middle' });
+    drawText(str, 24, y, { size: 18, weight: 700, color: 'rgba(27, 31, 36, 0.32)', baseline: 'middle' });
   }
 
   function drawStreet() {
@@ -775,6 +829,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.fillStyle = i % 2 ? C.gateMuni : C.gateBart;
+      ctx.fillStyle = i % 2 ? C.gateReaderMuni : C.gateReaderBart;
       ctx.beginPath();
       ctx.arc(x + 17, 168, 2.5, 0, TAU);
       ctx.fill();
@@ -785,6 +840,8 @@
     [
       [300, 'BART', C.gateBart],
       [1030, 'Muni', C.gateMuni],
+      [300, 'BART', C.gateReaderBart],
+      [1030, 'Muni', C.gateReaderMuni],
     ].forEach(([x, label, color]) => {
       ctx.fillStyle = C.panel;
       roundRect(x, 147, 180, 66, 4);
@@ -993,6 +1050,27 @@
     }
     if (!train.doorsOpen) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  function drawCar(train, x, y, w, h, lead) {
+    ctx.fillStyle = train.line.color;
+    roundRect(x, y, w, h, lead ? 7 : 3);
+    ctx.fill();
+    ctx.fillStyle = C.carShine;
+    ctx.fillRect(x, y, w, 2);
+
+    // Windows and door seams.
+    ctx.fillStyle = C.carWindow;
+    roundRect(x + w * 0.08, y + h * 0.18, w * 0.84, h * 0.32, 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.10)';
+    for (let k = 1; k < 4; k++) ctx.fillRect(x + w * 0.08 + k * (w * 0.84 / 4), y + h * 0.19, 1, h * 0.29);
+    ctx.fillStyle = 'rgba(10, 14, 20, 0.36)';
+    for (let k = 1; k < 3; k++) ctx.fillRect(x + (w * k) / 3, y + h * 0.12, 2, h * 0.72);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillRect(x + w * 0.06, y + h * 0.68, w * 0.88, 2);
+
+    if (lead) {
+      const front = train.sign > 0 ? x + w - 5 : x + 5;
+      ctx.fillStyle = C.headlight;
       ctx.beginPath();
       ctx.moveTo(x + w * 0.1, wy + wh);
       ctx.lineTo(x + w * 0.3, wy);
@@ -1022,6 +1100,11 @@
         weight: 700,
         color: C.carBoardText,
         align: 'center',
+      drawText(train.destination, train.sign > 0 ? x + w - 12 : x + 12, y + h * 0.58, {
+        size: 8,
+        weight: 700,
+        color: '#0b1118',
+        align: train.sign > 0 ? 'right' : 'left',
       });
       ctx.restore();
 
@@ -1046,6 +1129,7 @@
 
     ctx.fillStyle = C.trainShadow;
     roundRect(x0 + 8, y + train.height + 1, train.length - 16, 6, 3);
+    roundRect(x0 + 8, y + train.height - 1, train.length - 16, 8, 4);
     ctx.fill();
 
     for (let i = 0; i < train.cars; i++) {
@@ -1063,6 +1147,8 @@
     if (train.doorsOpen) {
       ctx.fillStyle = C.glow;
       ctx.fillRect(x0, y - 10, train.length, 4);
+      ctx.fillStyle = 'rgba(242, 194, 48, 0.16)';
+      ctx.fillRect(x0, y - 12, train.length, train.height + 24);
     }
 
     if (train.state !== 'dwell') {
@@ -1070,6 +1156,7 @@
       const glow = ctx.createRadialGradient(fx, train.trackY, 0, fx, train.trackY, 120);
       glow.addColorStop(0, C.glow);
       glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      glow.addColorStop(1, 'rgba(255, 250, 225, 0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(fx, train.trackY, 120, 0, TAU);
