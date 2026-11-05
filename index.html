@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Civic Center / UN Plaza — BART &amp; Muni Operations Simulator</title>
+  <title>Civic Center / UN Plaza — BART and Muni operations simulator</title>
   <meta name="description" content="Interactive cutaway simulator of Civic Center / UN Plaza station: BART and Muni Metro trains, platform displays, and passenger flow. Illustrative, synthetic data.">
-  <meta name="theme-color" content="#070a0e">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#f6f5f1">
+  <meta name="color-scheme" content="light">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Civic Center / UN Plaza — BART &amp; Muni Operations Simulator">
-  <meta property="og:description" content="Four-level station cutaway with live trains, passengers and a station log.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%87%3C/text%3E%3C/svg%3E">
+  <meta property="og:title" content="Civic Center / UN Plaza — BART and Muni operations simulator">
+  <meta property="og:description" content="A four-level station cutaway with live trains, passengers and a station log.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='12' fill='%23f2c230'/%3E%3Crect x='18' y='44' width='64' height='12' fill='%231b1f24'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,14 +21,13 @@
   <div class="shell">
     <header class="masthead">
       <div>
-        <p class="eyebrow">BART &amp; Muni Metro · station operations simulator</p>
         <h1>Civic Center / UN Plaza</h1>
-        <p class="sub">Four-level cutaway · passenger circulation · platform displays · service headways · illustrative only</p>
+        <p class="subtitle">A four-level cutaway of the station. Watch BART and Muni trains arrive, load and leave while passengers move between the street, the fare concourse and the platforms.</p>
       </div>
       <div class="clock">
         <div id="clock" class="time">08:00:00</div>
-        <div id="period" class="period">Morning Rush</div>
-        <div id="clockState" class="sim">Running · 4×</div>
+        <div id="period" class="period">Morning rush</div>
+        <div id="clockState" class="state">Running at 4×</div>
       </div>
     </header>
 
@@ -34,8 +35,8 @@
       <section class="panel" aria-labelledby="station-title">
         <div class="panel-head">
           <div>
-            <h2 id="station-title" class="panel-title">Station cutaway</h2>
-            <p class="panel-note">Street → Concourse → Muni Metro → BART · island platforms with central tracks</p>
+            <h2 id="station-title" class="panel-title">Station</h2>
+            <p class="panel-note">Street, fare concourse, Muni Metro and BART platforms</p>
           </div>
           <div class="controls">
             <button id="pauseBtn" class="btn" type="button">Pause</button>
@@ -60,11 +61,11 @@
         </div>
 
         <ul class="legend">
-          <li class="tag"><span class="swatch" style="--c: #f7cf42"></span>Yellow · Antioch ↔ SFIA / Millbrae</li>
-          <li class="tag"><span class="swatch" style="--c: #ff6170"></span>Red · Richmond ↔ Millbrae / SFIA</li>
-          <li class="tag"><span class="swatch" style="--c: #ee8d35"></span>Orange · Berryessa ↔ Daly City</li>
-          <li class="tag"><span class="swatch" style="--c: #5da9ff"></span>Blue · Dublin / Pleasanton ↔ Daly City</li>
-          <li class="tag"><span class="swatch" style="--c: #2e79c7"></span>Muni · J / K / L / M / N</li>
+          <li class="tag"><span class="swatch" style="--c: #f7cf42"></span>Yellow: Antioch and SFIA / Millbrae</li>
+          <li class="tag"><span class="swatch" style="--c: #ff6170"></span>Red: Richmond and Millbrae / SFIA</li>
+          <li class="tag"><span class="swatch" style="--c: #ee8d35"></span>Orange: Berryessa and Daly City</li>
+          <li class="tag"><span class="swatch" style="--c: #5da9ff"></span>Blue: Dublin / Pleasanton and Daly City</li>
+          <li class="tag"><span class="swatch" style="--c: #2e79c7"></span>Muni: J, K, L, M and N</li>
         </ul>
       </section>
 
@@ -73,48 +74,36 @@
           <div class="panel-head">
             <div>
               <h2 id="ops-title" class="panel-title">Operations</h2>
-              <p class="panel-note">Live simulator telemetry</p>
+              <p class="panel-note">Live from the simulation</p>
             </div>
           </div>
           <div class="stats">
-            <div class="stat">
-              <p class="k">Dwelling</p>
-              <p id="stDwelling" class="v">0</p>
-              <p class="s">trains at platform</p>
+            <div>
+              <p class="stat-label">Dwelling</p>
+              <p id="stDwelling" class="stat-value">0</p>
+              <p class="stat-note">trains at a platform</p>
             </div>
-            <div class="stat">
-              <p class="k">Waiting</p>
-              <p id="stWaiting" class="v">0</p>
-              <p class="s">passengers on platforms</p>
+            <div>
+              <p class="stat-label">Waiting</p>
+              <p id="stWaiting" class="stat-value">0</p>
+              <p class="stat-note">passengers on platforms</p>
             </div>
-            <div class="stat">
-              <p class="k">Boarded</p>
-              <p id="stBoarded" class="v">0</p>
-              <p class="s">since last reset</p>
+            <div>
+              <p class="stat-label">Boarded</p>
+              <p id="stBoarded" class="stat-value">0</p>
+              <p class="stat-note">since last reset</p>
             </div>
-            <div class="stat">
-              <p class="k">Departed</p>
-              <p id="stDeparted" class="v">0</p>
-              <p class="s">trains dispatched</p>
+            <div>
+              <p class="stat-label">Departed</p>
+              <p id="stDeparted" class="stat-value">0</p>
+              <p class="stat-note">trains dispatched</p>
             </div>
           </div>
           <div class="status">
-            <div class="status-card">
-              <p class="status-label">Service</p>
-              <p id="serviceStatus" class="status-value ok">On schedule</p>
-            </div>
-            <div class="status-card">
-              <p class="status-label">Fastest headway</p>
-              <p id="headways" class="status-value">—</p>
-            </div>
-            <div class="status-card">
-              <p class="status-label">Trains in service</p>
-              <p id="trainsInService" class="status-value">0</p>
-            </div>
-            <div class="status-card">
-              <p class="status-label">Passengers in station</p>
-              <p id="paxInStation" class="status-value">0</p>
-            </div>
+            <div class="status-row"><span>Service</span><span id="serviceStatus" class="ok">On schedule</span></div>
+            <div class="status-row"><span>Fastest headway</span><span id="headways">—</span></div>
+            <div class="status-row"><span>Trains in service</span><span id="trainsInService">0</span></div>
+            <div class="status-row"><span>Passengers in station</span><span id="paxInStation">0</span></div>
           </div>
         </section>
 
@@ -135,17 +124,17 @@
               <p class="panel-note">Dispatch and passenger activity</p>
             </div>
           </div>
-          <div id="feed" class="feed" aria-live="off"></div>
+          <div id="feed" class="feed"></div>
         </section>
       </aside>
     </main>
 
     <footer class="foot">
-      <p><strong>Simulation basis.</strong> Station geometry and the current route set follow public BART and SFMTA station information. Departures, headways, passenger counts and dwell times are synthetic and illustrative. This is not a real-time tool and is not affiliated with BART or SFMTA.</p>
-      <p>Keys: Space pauses · 1, 2, 4, 8 set speed.</p>
-      <p class="credit">
-        Created by Hossein Seyed Bagheri ·
-        <a href="https://github.com/hosseinb1111/civic-center-transit-simulator" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+      <p><strong>About the data.</strong> Station geometry and the current route set follow public BART and SFMTA station information. Departures, headways, passenger counts and dwell times are synthetic. This is not a real-time tool and is not affiliated with BART or SFMTA.</p>
+      <p>Keyboard: Space pauses. Keys 1, 2, 4 and 8 set the speed.</p>
+      <p>
+        Created by Hossein Seyed Bagheri.
+        <a href="https://github.com/hosseinb1111/civic-center-transit-simulator" target="_blank" rel="noopener noreferrer">Project on GitHub</a>
       </p>
     </footer>
   </div>
