@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "station": "Civic Center / UN Plaza",
+    "timezone": "America/Los_Angeles",
+    "defaultMode": "illustrative",
+    "configVersion": 1
+  },
+  "simulation": {
+    "startTime": 28800,
+    "defaultSpeed": 4,
+    "maxTrains": 25,
+    "maxPassengers": 285,
+    "seedPassengers": 95,
+    "scheduleLookaheadSeconds": 30,
+    "entryRatePerSecond": { "offPeak": 0.1, "peak": 0.19 },
+    "dwellSeconds": {
+      "bart": { "min": 22, "max": 28 },
+      "muni": { "min": 17, "max": 23 }
+    },
+    "peakPeriods": [
+      { "start": 23400, "end": 34200, "name": "Morning rush" },
+      { "start": 57600, "end": 68400, "name": "Evening rush" }
+    ],
+    "periods": [
+      { "start": 0, "end": 18000, "name": "Overnight" },
+      { "start": 18000, "end": 23400, "name": "Early morning" },
+      { "start": 23400, "end": 34200, "name": "Morning rush" },
+      { "start": 34200, "end": 57600, "name": "Midday" },
+      { "start": 57600, "end": 68400, "name": "Evening rush" },
+      { "start": 68400, "end": 79200, "name": "Evening" },
+      { "start": 79200, "end": 86400, "name": "Late night" }
+    ]
+  },
+  "lines": {
+    "yellow": { "system": "bart", "label": "Yellow", "short": "Y", "color": "#f7cf42", "ink": "#151a20", "cars": [8, 9, 10], "peakHeadwaySeconds": 150, "offPeakHeadwaySeconds": 300, "a": "SFIA / Millbrae", "b": "Antioch" },
+    "red": { "system": "bart", "label": "Red", "short": "R", "color": "#ff6170", "ink": "#ffffff", "cars": [8, 9, 10], "peakHeadwaySeconds": 300, "offPeakHeadwaySeconds": 600, "a": "Richmond", "b": "Millbrae / SFIA" },
+    "orange": { "system": "bart", "label": "Orange", "short": "O", "color": "#ee8d35", "ink": "#ffffff", "cars": [8, 9, 10], "peakHeadwaySeconds": 300, "offPeakHeadwaySeconds": 600, "a": "Daly City", "b": "Berryessa / North San José" },
+    "blue": { "system": "bart", "label": "Blue", "short": "B", "color": "#5da9ff", "ink": "#ffffff", "cars": [8, 9, 10], "peakHeadwaySeconds": 300, "offPeakHeadwaySeconds": 600, "a": "Daly City", "b": "Dublin / Pleasanton" },
+    "J": { "system": "muni", "label": "J Church", "short": "J", "color": "#c9935d", "ink": "#ffffff", "cars": [1, 2], "peakHeadwaySeconds": 360, "offPeakHeadwaySeconds": 600, "a": "Embarcadero", "b": "Balboa Park" },
+    "K": { "system": "muni", "label": "K Ingleside", "short": "K", "color": "#4d91ca", "ink": "#ffffff", "cars": [1, 2], "peakHeadwaySeconds": 480, "offPeakHeadwaySeconds": 720, "a": "Embarcadero", "b": "Balboa Park" },
+    "L": { "system": "muni", "label": "L Taraval", "short": "L", "color": "#8360a9", "ink": "#ffffff", "cars": [1, 2], "peakHeadwaySeconds": 480, "offPeakHeadwaySeconds": 720, "a": "Embarcadero", "b": "SF Zoo" },
+    "M": { "system": "muni", "label": "M Ocean View", "short": "M", "color": "#43a16e", "ink": "#ffffff", "cars": [1, 2], "peakHeadwaySeconds": 480, "offPeakHeadwaySeconds": 720, "a": "Embarcadero", "b": "Balboa Park" },
+    "N": { "system": "muni", "label": "N Judah", "short": "N", "color": "#2e79c7", "ink": "#ffffff", "cars": [1, 2], "peakHeadwaySeconds": 360, "offPeakHeadwaySeconds": 540, "a": "Embarcadero", "b": "Ocean Beach" }
+  },
+  "services": [
+    { "id": "yellow-A", "lineId": "yellow", "direction": "A", "offsetSeconds": 0 },
+    { "id": "yellow-B", "lineId": "yellow", "direction": "B", "offsetSeconds": 30 },
+    { "id": "orange-A", "lineId": "orange", "direction": "A", "offsetSeconds": 60 },
+    { "id": "orange-B", "lineId": "orange", "direction": "B", "offsetSeconds": 90 },
+    { "id": "blue-A", "lineId": "blue", "direction": "A", "offsetSeconds": 120 },
+    { "id": "blue-B", "lineId": "blue", "direction": "B", "offsetSeconds": 150 },
+    { "id": "red-A", "lineId": "red", "direction": "A", "offsetSeconds": 180 },
+    { "id": "red-B", "lineId": "red", "direction": "B", "offsetSeconds": 210 },
+    { "id": "N-A", "lineId": "N", "direction": "A", "offsetSeconds": 15 },
+    { "id": "N-B", "lineId": "N", "direction": "B", "offsetSeconds": 195 },
+    { "id": "J-A", "lineId": "J", "direction": "A", "offsetSeconds": 75 },
+    { "id": "J-B", "lineId": "J", "direction": "B", "offsetSeconds": 255 },
+    { "id": "K-A", "lineId": "K", "direction": "A", "offsetSeconds": 135 },
+    { "id": "K-B", "lineId": "K", "direction": "B", "offsetSeconds": 315 },
+    { "id": "L-A", "lineId": "L", "direction": "A", "offsetSeconds": 225 },
+    { "id": "L-B", "lineId": "L", "direction": "B", "offsetSeconds": 45 },
+    { "id": "M-A", "lineId": "M", "direction": "A", "offsetSeconds": 285 },
+    { "id": "M-B", "lineId": "M", "direction": "B", "offsetSeconds": 105 }
+  ],
+  "scenarios": {
+    "normal": {
+      "label": "Normal service",
+      "description": "Baseline illustrative passenger demand and service intervals.",
+      "headwayMultiplier": 1,
+      "dwellMultiplier": 1,
+      "demandMultiplier": 1
+    },
+    "singleTracking": {
+      "label": "Single-tracking",
+      "description": "Longer intervals and longer platform dwells to represent a constrained track section.",
+      "headwayMultiplier": 1.8,
+      "dwellMultiplier": 1.3,
+      "demandMultiplier": 1
+    },
+    "platformCrowding": {
+      "label": "Platform crowding",
+      "description": "Higher passenger arrivals and longer dwell times as platforms become crowded.",
+      "headwayMultiplier": 1,
+      "dwellMultiplier": 1.65,
+      "demandMultiplier": 2.4
+    }
+  }
+}
