@@ -1,0 +1,13 @@
+{
+  "name": "civic-center-transit-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dependency-free Civic Center / UN Plaza transit operations simulator",
+  "scripts": {
+    "test": "node --test",
+    "validate": "node scripts/validate.mjs",
+    "smoke": "node scripts/static-smoke.mjs",
+    "gtfs:import": "node scripts/import-gtfs.mjs"
+  }
+}

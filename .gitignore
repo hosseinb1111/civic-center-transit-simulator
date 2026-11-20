@@ -1,0 +1,4 @@
+node_modules/
+feeds/
+.DS_Store
+Thumbs.db
